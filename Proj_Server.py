@@ -24,6 +24,12 @@ class Confidentiality_lvl_List(Enum):
     Confidential = 1
     Unclassified = 0
 
+def StringToConfidentialityLvl(s: str):
+    if s == 'TopSecret': return Confidentiality_lvl_List.TopSecret
+    elif s == 'Secret': return Confidentiality_lvl_List.Secret
+    elif s == 'Confidential': return Confidentiality_lvl_List.Confidential
+    elif s == 'Unclassified': return Confidentiality_lvl_List.Unclassified
+    else: return -1
 
 class Integrity_lvl_List(Enum):
     VeryTrusted = 3
@@ -31,11 +37,31 @@ class Integrity_lvl_List(Enum):
     SlightlyTrusted = 1
     Untrusted = 0
 
-class Acount_Types(Enum):
+def StringToIntegrityLvl(s: str):
+    if s == 'VeryTrusted': return Integrity_lvl_List.VeryTrusted
+    elif s == 'Trusted': return Integrity_lvl_List.Trusted
+    elif s == 'SlightlyTrusted': return Integrity_lvl_List.SlightlyTrusted
+    elif s == 'Untrusted': return Integrity_lvl_List.Untrusted
+    else: return -1
+
+
+
+
+class Account_Types(Enum):
     ShortTermSaving = auto()
     LongTermSaving = auto()
     Checking = auto()
     GharzAlHassaneh = auto()
+
+def StringToAccountType(s: str):
+    if s == 'ShortTermSaving': return Account_Types.ShortTermSaving
+    elif s == 'LongTermSaving': return Account_Types.LongTermSaving
+    elif s == 'Checking': return Account_Types.Checking
+    elif s == 'GharzAlHassaneh': return Account_Types.GharzAlHassaneh
+    else: return -1
+
+
+
 
 def RandomSubstring(string, length):
     return ''.join(random.sample(string, length))
@@ -84,6 +110,7 @@ class account:
             f = open(accounts_filename, 'w')
             json.dump(accounts_dict, f, indent=4)
             f.close()
+        return self.__accountnumber
 
     def Withdraw(self, user, amount):
         if user in list(self.__userlist):
@@ -131,6 +158,7 @@ class account:
             f = open(accounts_filename, 'w')
             json.dump(accounts_dict, f, indent=4)
             f.close()
+        return 1 #Success
 
     def AcceptRequest(self, caller, user, conf_lvl, integrity_lvl):
         if user in self.__pendinglist and caller == self.__owner:
@@ -140,6 +168,10 @@ class account:
                 f = open(accounts_filename, 'w')
                 json.dump(accounts_dict, f, indent=4)
                 f.close()
+            return 1 #Success
+
+    def isMember(self, user):
+        return user in list(self.__userlist)
 
     def PrintAccountInfo(self, user):
         if user in list(self.__userlist):
@@ -229,27 +261,171 @@ class CustomerHandlerThread(threading.Thread):
                 continue
 
 
-            
             elif command[0] == "create":
-                pass
+                if LoggedinUser == '':
+                    #TODO Login First
+                    continue
+                if len(command) == 5:
+                    EnumedAccountType = StringToAccountType(command[1])
+                    if EnumedAccountType == -1:
+                        #TODO Wrong Account Type
+                        continue
+                    
+                    if command[2].isdigit(): 
+                        amount = int(command[2])
+                    else:
+                        #TODO Wrong Amount
+                        continue
+
+                    EnumedConf_lvl = StringToConfidentialityLvl(command[3])
+                    if EnumedConf_lvl == -1:
+                        #TODO Wrong Conf Label
+                        continue
+                    
+                    EnumedIntegrity_lvl = StringToIntegrityLvl(command[4])
+                    if EnumedIntegrity_lvl == -1:
+                        #TODO Wrong Integrity Label
+                        continue
+
+                    acountnum = account(LoggedinUser, EnumedAccountType, amount, EnumedConf_lvl, EnumedIntegrity_lvl)
+                    #TODO Print Accountnum
+                continue
+
 
             elif command[0] == "join":
-                pass
+                if LoggedinUser == '':
+                    #TODO Login First
+                    continue
+                if len(command) == 2:
+                    if command[1].isdigit():
+                        accountnum = int(command[1])
+                        if accountnum in list(accounts_dict):
+                            joinresult = accounts_dict[accountnum].JoinRequest(LoggedinUser)
+                            if joinresult == -1:
+                                #TODO Already in Pending
+                                continue
+                            elif joinresult == 0:
+                                #TODO Already a member
+                                continue
+                            elif joinresult == 1:
+                                #TODO Success
+                                pass
+                        else:
+                            #TODO Account doesnt Exist
+                            pass
+                    else:
+                        #TODO Enter a valid Account num
+                        pass
+                continue
+
+                
 
             elif command[0] == "accept":
-                pass
+                if LoggedinUser == '':
+                    #TODO Login First
+                    continue
+                if len(command) == 5:
+                    if command[1].isdigit():
+                        accountnum = int(command[1])
+                        if accountnum in list(accounts_dict):
+                            username = command[2]
+                            EnumedConf_lvl = StringToConfidentialityLvl(command[3])
+                            if EnumedConf_lvl == -1:
+                                #TODO Wrong Conf Label
+                                continue
+                            
+                            EnumedIntegrity_lvl = StringToIntegrityLvl(command[4])
+                            if EnumedIntegrity_lvl == -1:
+                                #TODO Wrong Integrity Label
+                                continue
+                            
+                            acceptresult = accounts_dict[accountnum].AcceptRequest(LoggedinUser, username, EnumedConf_lvl, EnumedIntegrity_lvl)
+                            if acceptresult == 1:
+                                #TODO User Accepted
+                                pass
+                            else:
+                                #TODO User not in pending list
+                                pass
+                        else:
+                            #TODO Account doesnt Exist
+                            pass
+                    else:
+                        #TODO wrong Account number
+                        pass
+                continue
+
+
 
             elif command[0] == "show":
-                if command[1] == "myaccount":
-                    pass
+                if command[1] == "myaccounts":
+                    if len(command) == 2:
+                        result = [acc for acc in list(accounts_dict) if accounts_dict[acc].isMember(LoggedinUser)]
+                        #TODO send the list
+                    continue
                 elif command[1] == "account":
-                    pass
+                    if len(command) == 3:
+                        if command[2].isdigit():
+                            accountnum = int(command[2])
+                            if accountnum in list(accounts_dict):
+                                #TODO
+                                pass
+
+                    
             
             elif command[0] == "deposit":
-                pass
+                if len(command) == 4:
+                    source = command[1]
+                    if source in list(accounts_dict):
+                        destination = command[2]
+                        if destination in list(accounts_dict):
+                            if command[3].isdigit():
+                                amount = int(command[3])
+                                depositresult = accounts_dict[source].Deposit(LoggedinUser, destination, amount)
+                                if depositresult == 1:
+                                    #TODO Deposit Success
+                                    pass
+                                elif depositresult == 0:
+                                    #TODO Low Balance
+                                    pass
+                                elif depositresult == -1:
+                                    #TODO Access Denied
+                                    pass
+                            else:
+                                #TODO Invalid Amount
+                                pass
+                        else:
+                            #TODO Destination not exists
+                            pass
+                    else:
+                        #TODO Source not exists
+                        pass
+                continue
 
             elif command[0] == "withdraw":
-                pass
+                if len(command) == 3:
+                    source = command[1]
+                    if source in list(accounts_dict):
+                        if command[2].isdigit():
+                            amount = int(command[2])
+                            withdrawresult = accounts_dict[source].Withdraw(LoggedinUser, amount)
+                            if withdrawresult == 1:
+                                #TODO Deposit Success
+                                pass
+                            elif withdrawresult == 0:
+                                #TODO Low Balance
+                                pass
+                            elif withdrawresult == -1:
+                                #TODO Access Denied
+                                pass
+                        else:
+                            #TODO Invalid Amount
+                            pass
+                    else:
+                        #TODO Source not exists
+                        pass
+                continue
+
+
 
             elif command[0] == "exit":
                 pass
