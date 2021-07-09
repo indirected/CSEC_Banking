@@ -5,12 +5,17 @@ import json
 import hashlib
 import random
 import threading
+import socket as sc
+
+server_socket = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
+server_socket.bind(('127.0.0.1', 12345))
 
 
 alphabet = "abcdefghijklmnopqrstuvwxyz"
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 digits = "0123456789"
 specials = "!@#$%^&*()_+-=/?"
+Password_Requirment = (8, True, False, False, True) #(Length, alphabet, ALPHABET, digit, special)
 
 
 class Confidentiality_lvl_List(Enum):
@@ -142,11 +147,138 @@ class account:
                 #TODO Print Account info
                 pass
 
+
+
+def PasswordAssesment(passwd: str):
+    if len(passwd) < Password_Requirment[0]: return 0 #Low Length
+
+    hasUpper, hasLower, hasDigit, hasSpecial = False, False, False, False
+    for char in passwd:
+        if char in alphabet: hasLower = True
+        elif char in ALPHABET: hasUpper = True
+        elif char in digits: hasDigit = True
+        elif char in specials: hasSpecial = True
+        else: return -2 #Character Not Allowed
+
+    if tuple([a and b for a,b in zip((hasLower, hasUpper, hasDigit, hasSpecial), Password_Requirment[1:])]) == Password_Requirment[1:]: 
+        return 1 #Accept Password
+
+    else: return -1 #Requirement not met
+
+
+
+class CustomerHandlerThread(threading.Thread):
+    def __init__(self, client: sc.socket, address):
+        super().__init__()
+        self.client = client
+        self. address = address
+    def run(self):
+        self.client.setblocking(True)
+        while True:
+            command = self.client.recv(1024).decode('ascii').split()
+            LoggedinUser = ''
+            if command[0] == "signup":
+                if LoggedinUser != '':
+                    #TODO You are Already Logged in
+                    continue
+                if len(command) == 3:
+                    username = command[1]
+                    password = command[2]
+                    if user in list(user_passhash_dict):
+                        #TODO User Already Exists
+                        pass
+                    #Test username to be in the Allowed character list
+                    elif ''.join([char for char in username if char in alphabet+ALPHABET+digits]) == username:
+                        #Test Password
+                        passAssesst = PasswordAssesment(password)
+                        if passAssesst == 1:
+                            #Create User
+                            user(username, password)
+                            #TODO User Created
+                        elif passAssesst == 0:
+                            #TODO Password is short
+                            pass
+                        elif passAssesst == -1:
+                            #TODO Reqs not met - Print Reqs
+                            pass
+                        elif passAssesst == -2:
+                            #TODO Not Allowed characters in passwd
+                            pass
+                continue
+
+
+            elif command[0] == "login":
+                if LoggedinUser != '':
+                    #TODO You Are Already Logged in
+                    continue
+                if len(command) == 3:
+                    username = command[1]
+                    password = command[2]
+                    if username in list(user_passhash_dict):
+                        savedHash, savedSalt = user_passhash_dict[username]
+                        newHash = hashlib.sha256((password + savedSalt).encode('ascii')).hexdigest()
+                        if newHash == savedHash:
+                            LoggedinUser = username
+                            #TODO Logged in
+                        else:
+                            #TODO Wrong Passwd
+                            pass
+                    else:
+                        #TODO user not exists
+                        pass
+                continue
+
+
+            
+            elif command[0] == "create":
+                pass
+
+            elif command[0] == "join":
+                pass
+
+            elif command[0] == "accept":
+                pass
+
+            elif command[0] == "show":
+                if command[1] == "myaccount":
+                    pass
+                elif command[1] == "account":
+                    pass
+            
+            elif command[0] == "deposit":
+                pass
+
+            elif command[0] == "withdraw":
+                pass
+
+            elif command[0] == "exit":
+                pass
+            
+            else:
+                pass
             
 
-
-
+        print(self.name)
         
+
+
+
+
+if __name__ == "__main__":
+    # thread_list = []
+    # server_socket.listen(10)
+    # while True:
+    #     cli, addr = server_socket.accept()
+    #     newthread = CustomerHandlerThread(cli, addr)
+    #     newthread.start()
+    #     thread_list.append[newthread]
+    # dict = {"alo":"balo"}
+    # print('ball'in list(dict)
+    #username = 'alobaloA25+amFDE85_'
+    #print("".join([char for char in username if char in alphabet+ALPHABET+digits]))
+    #print((True, True, False, True) & Password_Requirment[1:] == Password_Requirment[1:])
+    #print(tuple([a and b for a,b in zip((True, True, False, True), Password_Requirment[1:])])== Password_Requirment[1:])
+    pass
 
         
 
@@ -170,7 +302,7 @@ class account:
 # #list2 = pickle.load(f)
 # list2 = json.load(f)
 # print(list(list2.values()))
-a = Confidentiality_lvl_List.Secret
-b = Confidentiality_lvl_List.Unclassified
-print(a.value >= b.value)
-print(b)
+#a = Confidentiality_lvl_List.Secret
+#b = Confidentiality_lvl_List.Unclassified
+#print(a.value >= b.value)
+#print(b)
