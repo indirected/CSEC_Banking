@@ -6,6 +6,7 @@ import hashlib
 import random
 import threading
 import socket as sc
+import datetime
 
 server_socket = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
 server_socket.bind(('127.0.0.1', 12345))
@@ -67,6 +68,10 @@ def RandomSubstring(string, length):
     return ''.join(random.sample(string, length))
 
 
+#Log file and Lock
+LogfileName = "Audit.log"
+logfile_lock = threading.Lock()
+
 #UserList and Files
 user_passhash_filename = "user_passhash.json"
 passhash_lock = threading.Lock()
@@ -96,6 +101,7 @@ class account:
 
     def __init__(self, ownerusername, accounttype, initialamount, conf_lvl, integrity_lvl):
         self.__acounttype = accounttype
+        self.__creationdate = datetime.date.today()
         self.__balance = initialamount
         self.__conf_lvl = conf_lvl
         self.__integrity_lvl = integrity_lvl
@@ -203,22 +209,49 @@ class CustomerHandlerThread(threading.Thread):
     def __init__(self, client: sc.socket, address):
         super().__init__()
         self.client = client
-        self. address = address
+        self.address = address
     def run(self):
         self.client.setblocking(True)
+        #Audit
+        with logfile_lock:
+            f = open(LogfileName, 'a')
+            f.write(f"[{datetime.datetime.now()}]\t A client connected with IP address: {self.address[0]}\n")
+            f.close()
+
+        
         while True:
             command = self.client.recv(1024).decode('ascii').split()
+
+            #Audit
+            with logfile_lock:
+                f = open(LogfileName, 'a')
+                f.write(f"[{datetime.datetime.now()}]\t Recieved Command: [{' '.join(command)}] from IP address: {self.address[0]}\n")
+                f.close()
+
+
             LoggedinUser = ''
             if command[0] == "signup":
                 if LoggedinUser != '':
+
+                    #Audit
+                    with logfile_lock:
+                        f = open(LogfileName, 'a')
+                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to signup while Logged in from IP address: {self.address[0]}\n")
+                        f.close()
+
                     #TODO You are Already Logged in
                     continue
                 if len(command) == 3:
                     username = command[1]
                     password = command[2]
                     if user in list(user_passhash_dict):
+                        #Audit
+                        with logfile_lock:
+                            f = open(LogfileName, 'a')
+                            f.write(f"[{datetime.datetime.now()}]\t A client Tried to Create a Repetitive User: [{username}] with IP address: {self.address[0]}\n")
+                            f.close()
                         #TODO User Already Exists
-                        pass
+                        
                     #Test username to be in the Allowed character list
                     elif ''.join([char for char in username if char in alphabet+ALPHABET+digits]) == username:
                         #Test Password
@@ -226,6 +259,12 @@ class CustomerHandlerThread(threading.Thread):
                         if passAssesst == 1:
                             #Create User
                             user(username, password)
+
+                            #Audit
+                            with logfile_lock:
+                                f = open(LogfileName, 'a')
+                                f.write(f"[{datetime.datetime.now()}]\t A client Created a New User: [{username}] with IP address: {self.address[0]}\n")
+                                f.close()
                             #TODO User Created
                         elif passAssesst == 0:
                             #TODO Password is short
@@ -236,11 +275,23 @@ class CustomerHandlerThread(threading.Thread):
                         elif passAssesst == -2:
                             #TODO Not Allowed characters in passwd
                             pass
+                    else:
+                        #Audit
+                        with logfile_lock:
+                            f = open(LogfileName, 'a')
+                            f.write(f"[{datetime.datetime.now()}]\t A client Tried to Create a Invalid Username: [{username}] with IP address: {self.address[0]}\n")
+                            f.close()
+                        #TODO Invalid Username
                 continue
 
 
             elif command[0] == "login":
                 if LoggedinUser != '':
+                    #Audit
+                    with logfile_lock:
+                        f = open(LogfileName, 'a')
+                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to loggin while Logged in from IP address: {self.address[0]}\n")
+                        f.close()
                     #TODO You Are Already Logged in
                     continue
                 if len(command) == 3:
@@ -251,11 +302,27 @@ class CustomerHandlerThread(threading.Thread):
                         newHash = hashlib.sha256((password + savedSalt).encode('ascii')).hexdigest()
                         if newHash == savedHash:
                             LoggedinUser = username
+                            #Audit
+                            with logfile_lock:
+                                f = open(LogfileName, 'a')
+                                f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Logged in from IP address: {self.address[0]}\n")
+                                f.close()
+                            
                             #TODO Logged in
                         else:
+                            #Audit
+                            with logfile_lock:
+                                f = open(LogfileName, 'a')
+                                f.write(f"[{datetime.datetime.now()}]\t User: [{username}] Tried to loggin with Wrong Password: [{password}] from IP address: {self.address[0]}\n")
+                                f.close()
                             #TODO Wrong Passwd
-                            pass
+
                     else:
+                        #Audit
+                        with logfile_lock:
+                            f = open(LogfileName, 'a')
+                            f.write(f"[{datetime.datetime.now()}]\t A Client Tried to login with a Non-Existing User: [{username}] with Password: [{password}] from IP address: {self.address[0]}\n")
+                            f.close()
                         #TODO user not exists
                         pass
                 continue
@@ -263,6 +330,11 @@ class CustomerHandlerThread(threading.Thread):
 
             elif command[0] == "create":
                 if LoggedinUser == '':
+                    #Audit
+                    with logfile_lock:
+                        f = open(LogfileName, 'a')
+                        f.write(f"[{datetime.datetime.now()}]\t A client Tried to Create a new Account without Logging in from IP address: {self.address[0]}\n")
+                        f.close()
                     #TODO Login First
                     continue
                 if len(command) == 5:
@@ -288,6 +360,11 @@ class CustomerHandlerThread(threading.Thread):
                         continue
 
                     acountnum = account(LoggedinUser, EnumedAccountType, amount, EnumedConf_lvl, EnumedIntegrity_lvl)
+                    #Audit
+                    with logfile_lock:
+                        f = open(LogfileName, 'a')
+                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Created an Account: [{acountnum}] from IP address: {self.address[0]}\n")
+                        f.close()
                     #TODO Print Accountnum
                 continue
 
@@ -454,7 +531,7 @@ if __name__ == "__main__":
     #print("".join([char for char in username if char in alphabet+ALPHABET+digits]))
     #print((True, True, False, True) & Password_Requirment[1:] == Password_Requirment[1:])
     #print(tuple([a and b for a,b in zip((True, True, False, True), Password_Requirment[1:])])== Password_Requirment[1:])
-    pass
+    print(datetime.datetime.now())
 
         
 
