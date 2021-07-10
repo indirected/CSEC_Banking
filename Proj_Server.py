@@ -7,6 +7,10 @@ import random
 import threading
 import socket as sc
 import datetime
+from Crypto import Random
+from Crypto.Cipher import AES
+from Crypto.Random import get_random_bytes
+import base64
 
 server_socket = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
 server_socket.bind(('127.0.0.1', 12345))
@@ -61,11 +65,36 @@ def StringToAccountType(s: str):
     elif s == 'GharzAlHassaneh': return Account_Types.GharzAlHassaneh
     else: return -1
 
-
-
-
 def RandomSubstring(string, length):
     return ''.join(random.sample(string, length))
+
+
+class AESCrypto:
+    def __init__(self, key):
+        self.__key = key
+        self.__blocksize = AES.block_size
+    
+    def __pad(self, s):
+        return s + (self.__blocksize - len(s) % self.__blocksize) * chr(self.__blocksize - len(s) % self.__blocksize)
+    
+    def __unpad(self, s):
+        return s[:-ord(s[-1])]
+    
+    def encrypt(self, plain: str) -> bytes:
+        plain = self.__pad(plain)
+        iv = get_random_bytes(self.__blocksize)
+        Cryptor = AES.new(self.__key, AES.MODE_CBC, iv)
+        return base64.b64encode(iv + Cryptor.encrypt(plain.encode('ascii')))
+    
+    def decrypt(self, cipher: bytes) -> str:
+        cipher = base64.b64decode(cipher)
+        iv = cipher[0:self.__blocksize]
+        Crypto = AES.new(self.__key, AES.MODE_CBC, iv)
+        return self.__unpad(Crypto.decrypt(cipher[self.__blocksize:])).decode('ascii')
+
+
+
+
 
 
 #Log file and Lock
@@ -220,7 +249,17 @@ class CustomerHandlerThread(threading.Thread):
 
         
         while True:
-            command = self.client.recv(1024).decode('ascii').split()
+            try:
+                command = self.client.recv(1024).decode('ascii').split()
+                if not command: raise ConnectionAbortedError
+            except Exception as e:
+                #Audit
+                with logfile_lock:
+                    f = open(LogfileName, 'a')
+                    f.write(f"[{datetime.datetime.now()}]\t Client Unexpectedly Discconected with Error: [{e}] from IP address: {self.address[0]}\n")
+                    f.close()
+                    print(f"Connection Error: [{e}] in Thread: [{self.name}] - Ending Thread...")
+                    return
 
             #Audit
             with logfile_lock:
@@ -424,7 +463,6 @@ class CustomerHandlerThread(threading.Thread):
                 continue
 
                 
-
             elif command[0] == "accept":
                 if LoggedinUser == '':
                     #Audit
@@ -485,7 +523,6 @@ class CustomerHandlerThread(threading.Thread):
                 continue
 
 
-
             elif command[0] == "show":
                 if LoggedinUser == '':
                     #Audit
@@ -529,8 +566,6 @@ class CustomerHandlerThread(threading.Thread):
                 continue
 
 
-                    
-            
             elif command[0] == "deposit":
                 if LoggedinUser == '':
                     #Audit
@@ -665,11 +700,10 @@ class CustomerHandlerThread(threading.Thread):
                         #Audit
                         with logfile_lock:
                             f = open(LogfileName, 'a')
-                            f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: from Account: [Invalid] from IP address: {self.address[0]}\n")
+                            f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: from Account: [Invalid] Which doesn't Exist from IP address: {self.address[0]}\n")
                             f.close()
                         #TODO Invalid Source
                 continue
-
 
 
             elif command[0] == "exit":
@@ -700,6 +734,10 @@ if __name__ == "__main__":
     #print((True, True, False, True) & Password_Requirment[1:] == Password_Requirment[1:])
     #print(tuple([a and b for a,b in zip((True, True, False, True), Password_Requirment[1:])])== Password_Requirment[1:])
     print(datetime.datetime.now())
+    s = 'adhwidjw djkpwjdpwjdpowdpjwdpwmdpowjdefijefijeifj esiofiesjfioesjfioejfejsfijsefoijseoiejfioejfiesj fes fioe foesi fjiosejfsei fose fues fse fuosehfseofse ofhseofhosefhe fushfh efoseh fifjesoifjesf'
+    print(s[:-ord(s[len(s)-1:])])
+
+
 
         
 
