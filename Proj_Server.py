@@ -371,6 +371,11 @@ class CustomerHandlerThread(threading.Thread):
 
             elif command[0] == "join":
                 if LoggedinUser == '':
+                    #Audit
+                    with logfile_lock:
+                        f = open(LogfileName, 'a')
+                        f.write(f"[{datetime.datetime.now()}]\t A client Tried to Join an Account without Logging in from IP address: {self.address[0]}\n")
+                        f.close()
                     #TODO Login First
                     continue
                 if len(command) == 2:
@@ -379,26 +384,54 @@ class CustomerHandlerThread(threading.Thread):
                         if accountnum in list(accounts_dict):
                             joinresult = accounts_dict[accountnum].JoinRequest(LoggedinUser)
                             if joinresult == -1:
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Join Account: [{accountnum}] While Already in Pending from IP address: {self.address[0]}\n")
+                                    f.close()
                                 #TODO Already in Pending
                                 continue
                             elif joinresult == 0:
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Join Account: [{accountnum}] While Already a Member from IP address: {self.address[0]}\n")
+                                    f.close()
                                 #TODO Already a member
                                 continue
                             elif joinresult == 1:
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Requested to Join Account: [{accountnum}] from IP address: {self.address[0]}\n")
+                                    f.close()
                                 #TODO Success
-                                pass
+                                
                         else:
+                            #Audit
+                            with logfile_lock:
+                                f = open(LogfileName, 'a')
+                                f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Join Account: [{accountnum}] Which Doesn't Exist from IP address: {self.address[0]}\n")
+                                f.close()
                             #TODO Account doesnt Exist
-                            pass
                     else:
+                        #Audit
+                        with logfile_lock:
+                            f = open(LogfileName, 'a')
+                            f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Join A non Valid Account number from IP address: {self.address[0]}\n")
+                            f.close()
                         #TODO Enter a valid Account num
-                        pass
                 continue
 
                 
 
             elif command[0] == "accept":
                 if LoggedinUser == '':
+                    #Audit
+                    with logfile_lock:
+                        f = open(LogfileName, 'a')
+                        f.write(f"[{datetime.datetime.now()}]\t A client Tried to Accept a Join without Logging in from IP address: {self.address[0]}\n")
+                        f.close()
                     #TODO Login First
                     continue
                 if len(command) == 5:
@@ -418,25 +451,58 @@ class CustomerHandlerThread(threading.Thread):
                             
                             acceptresult = accounts_dict[accountnum].AcceptRequest(LoggedinUser, username, EnumedConf_lvl, EnumedIntegrity_lvl)
                             if acceptresult == 1:
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Accepted User: [{username}] Request to Join Account: [{accountnum}] from IP address: {self.address[0]}\n")
+                                    f.close()
                                 #TODO User Accepted
-                                pass
+                                
                             else:
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Accepted User: [{username}] Request to Join Account: [{accountnum}] While he is not in Pending from IP address: {self.address[0]}\n")
+                                    f.close()
                                 #TODO User not in pending list
-                                pass
+                                
                         else:
+                            #Audit
+                            with logfile_lock:
+                                f = open(LogfileName, 'a')
+                                f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Accept a Request on Account: [{accountnum}] Which Doesn't Exist from IP address: {self.address[0]}\n")
+                                f.close()
                             #TODO Account doesnt Exist
-                            pass
+                            
                     else:
+                        #Audit
+                        with logfile_lock:
+                            f = open(LogfileName, 'a')
+                            f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Accept a Request on A non Valid Account number from IP address: {self.address[0]}\n")
+                            f.close()
                         #TODO wrong Account number
-                        pass
+                        
                 continue
 
 
 
             elif command[0] == "show":
+                if LoggedinUser == '':
+                    #Audit
+                    with logfile_lock:
+                        f = open(LogfileName, 'a')
+                        f.write(f"[{datetime.datetime.now()}]\t A client Tried to Request a Show without Logging in from IP address: {self.address[0]}\n")
+                        f.close()
+                    #TODO Login First
+                    continue
                 if command[1] == "myaccounts":
                     if len(command) == 2:
                         result = [acc for acc in list(accounts_dict) if accounts_dict[acc].isMember(LoggedinUser)]
+                        #Audit
+                        with logfile_lock:
+                            f = open(LogfileName, 'a')
+                            f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Requested his Accounts List from IP address: {self.address[0]}\n")
+                            f.close()
                         #TODO send the list
                     continue
                 elif command[1] == "account":
@@ -446,60 +512,162 @@ class CustomerHandlerThread(threading.Thread):
                             if accountnum in list(accounts_dict):
                                 #TODO
                                 pass
+                            else:
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Show Account: [{accountnum}] Which Doesn't Exist from IP address: {self.address[0]}\n")
+                                    f.close()
+                                #TODO Account not exists
+                        else:
+                            #Audit
+                            with logfile_lock:
+                                f = open(LogfileName, 'a')
+                                f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Show A non Valid Account number from IP address: {self.address[0]}\n")
+                                f.close()
+                            #TODO Enter a valid Account num
+                continue
+
 
                     
             
             elif command[0] == "deposit":
+                if LoggedinUser == '':
+                    #Audit
+                    with logfile_lock:
+                        f = open(LogfileName, 'a')
+                        f.write(f"[{datetime.datetime.now()}]\t A client Tried to Deposit to an Account without Logging in from IP address: {self.address[0]}\n")
+                        f.close()
+                    #TODO Login First
+                    continue
                 if len(command) == 4:
-                    source = command[1]
-                    if source in list(accounts_dict):
-                        destination = command[2]
-                        if destination in list(accounts_dict):
-                            if command[3].isdigit():
-                                amount = int(command[3])
-                                depositresult = accounts_dict[source].Deposit(LoggedinUser, destination, amount)
-                                if depositresult == 1:
-                                    #TODO Deposit Success
-                                    pass
-                                elif depositresult == 0:
-                                    #TODO Low Balance
-                                    pass
-                                elif depositresult == -1:
-                                    #TODO Access Denied
-                                    pass
+                    if command[1].isdigit():
+                        source = int(command[1])
+                        if source in list(accounts_dict):
+                            if command[2].isdigit:
+                                destination = int(command[2])
+                                if destination in list(accounts_dict):
+                                    if command[3].isdigit():
+                                        amount = int(command[3])
+                                        depositresult = accounts_dict[source].Deposit(LoggedinUser, destination, amount)
+                                        if depositresult == 1:
+                                            #Audit
+                                            with logfile_lock:
+                                                f = open(LogfileName, 'a')
+                                                f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Deposited: [{amount}T] from Account: [{source}] to Account: [{destination}] from IP address: {self.address[0]}\n")
+                                                f.close()
+                                            #TODO Deposit Success
+                                            
+                                        elif depositresult == 0:
+                                            #Audit
+                                            with logfile_lock:
+                                                f = open(LogfileName, 'a')
+                                                f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit: [{amount}T] from Account: [{source}] to Account: [{destination}] With Insufficient Source Balance from IP address: {self.address[0]}\n")
+                                                f.close()
+                                            #TODO Low Balance
+                                        elif depositresult == -1:
+                                            #Audit
+                                            with logfile_lock:
+                                                f = open(LogfileName, 'a')
+                                                f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit: [{amount}T] from Account: [{source}] to Account: [{destination}] With No Write Access to Source from IP address: {self.address[0]}\n")
+                                                f.close()
+                                            #TODO Access Denied
+                                    else:
+                                        #Audit
+                                        with logfile_lock:
+                                            f = open(LogfileName, 'a')
+                                            f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit: [InValid] Amount from Account: [{source}] to Account: [{destination}] from IP address: {self.address[0]}\n")
+                                            f.close()
+                                        #TODO Invalid Amount
+                                else:
+                                    #Audit
+                                    with logfile_lock:
+                                        f = open(LogfileName, 'a')
+                                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit from Account: [{source}] to Account: [{destination}] Which doesn't Exist from IP address: {self.address[0]}\n")
+                                        f.close()
+                                    #TODO Destination not exists
                             else:
-                                #TODO Invalid Amount
-                                pass
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit from Account: [{source}] to an [Invalid] Account from IP address: {self.address[0]}\n")
+                                    f.close()
+                                #TODO Invalid Destination
                         else:
-                            #TODO Destination not exists
-                            pass
+                            #Audit
+                            with logfile_lock:
+                                f = open(LogfileName, 'a')
+                                f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit from Account: [{source}] Which doesn't Exist from IP address: {self.address[0]}\n")
+                                f.close()
+                            #TODO Source not exists
                     else:
-                        #TODO Source not exists
-                        pass
+                        #Audit
+                        with logfile_lock:
+                            f = open(LogfileName, 'a')
+                            f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit from an [Invalid] Account from IP address: {self.address[0]}\n")
+                            f.close()
+                        #TODO Invalid Source
                 continue
 
             elif command[0] == "withdraw":
+                if LoggedinUser == '':
+                    #Audit
+                    with logfile_lock:
+                        f = open(LogfileName, 'a')
+                        f.write(f"[{datetime.datetime.now()}]\t A client Tried to Withdraw from an Account without Logging in from IP address: {self.address[0]}\n")
+                        f.close()
+                    #TODO Login First
+                    continue
                 if len(command) == 3:
-                    source = command[1]
-                    if source in list(accounts_dict):
-                        if command[2].isdigit():
-                            amount = int(command[2])
-                            withdrawresult = accounts_dict[source].Withdraw(LoggedinUser, amount)
-                            if withdrawresult == 1:
-                                #TODO Deposit Success
-                                pass
-                            elif withdrawresult == 0:
-                                #TODO Low Balance
-                                pass
-                            elif withdrawresult == -1:
-                                #TODO Access Denied
-                                pass
+                    if command[1].isdigit():
+                        source = int(command[1])
+                        if source in list(accounts_dict):
+                            if command[2].isdigit():
+                                amount = int(command[2])
+                                withdrawresult = accounts_dict[source].Withdraw(LoggedinUser, amount)
+                                if withdrawresult == 1:
+                                    #Audit
+                                    with logfile_lock:
+                                        f = open(LogfileName, 'a')
+                                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Withdrawed: [{amount}T] from Account: [{source}] from IP address: {self.address[0]}\n")
+                                        f.close()
+                                    #TODO Withdraw Success
+                                elif withdrawresult == 0:
+                                    #Audit
+                                    with logfile_lock:
+                                        f = open(LogfileName, 'a')
+                                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: [{amount}T] from Account: [{source}] With Insufficent Balance from IP address: {self.address[0]}\n")
+                                        f.close()
+                                    #TODO Low Balance
+                                elif withdrawresult == -1:
+                                    #Audit
+                                    with logfile_lock:
+                                        f = open(LogfileName, 'a')
+                                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: [{amount}T] from Account: [{source}] With No Write Access from IP address: {self.address[0]}\n")
+                                        f.close()
+                                    #TODO Access Denied
+                            else:
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: [InValid] Amount from Account: [{source}] from IP address: {self.address[0]}\n")
+                                    f.close()
+                                #TODO Invalid Amount
                         else:
-                            #TODO Invalid Amount
-                            pass
+                            #Audit
+                            with logfile_lock:
+                                f = open(LogfileName, 'a')
+                                f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: from Account: [{source}] Which doesn't Exist from IP address: {self.address[0]}\n")
+                                f.close()
+                            #TODO Source not exists
+                            
                     else:
-                        #TODO Source not exists
-                        pass
+                        #Audit
+                        with logfile_lock:
+                            f = open(LogfileName, 'a')
+                            f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: from Account: [Invalid] from IP address: {self.address[0]}\n")
+                            f.close()
+                        #TODO Invalid Source
                 continue
 
 
