@@ -20,7 +20,22 @@ alphabet = "abcdefghijklmnopqrstuvwxyz"
 ALPHABET = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
 digits = "0123456789"
 specials = "!@#$%^&*()_+-=/?"
-Password_Requirment = (8, True, False, False, True) #(Length, alphabet, ALPHABET, digit, special)
+Password_Requirment = (8, True, True, True, True) #(Length, alphabet, ALPHABET, digit, special)
+
+
+RSAKey_N = """2373909629079679939874086414726849121341158767789215600193336339190282947943702661531585360279080363
+806934022061879700431112871800064255281732207088706850479904551268635958739401013015290112599250647972771888750197
+563065234610830285319015603167020169323997280917154695702486219142929034057890610713687944019262940587271588109762
+510340413759228171903781960798978042029882197468555738089485983686637656527105257952357434178301700756247533025290
+477161534325397847426684807646312571463406714718630038286700542064566406946597212830060986042623976833001936406263
+0659530628312936691220865818936440016501334822244016452038177""".replace('\n', '')
+
+RSAKey_Private = """4922266498247367243381442588114065750630179363640027891271685843608458577537417865870075447584
+177344671319472328437867030592308908108879720380695199419776793478942763552503671165962107630398112702298747577276
+382262643162407972072683705403517316422338670338747636177298304939992970880974687989305123564623232272494022129501
+708209933041259932059310800568165490048260294392671259043763801388653504855690233409943664631128945262023354554568
+730269992326457025118806603865336649221357969684233935895723567446153944286754291639620014061032657866570757203982
+874827562816594617846731682290764761339121092976642201921913410213""".replace('\n', '')
 
 
 class Confidentiality_lvl_List(Enum):
@@ -247,8 +262,26 @@ class CustomerHandlerThread(threading.Thread):
             f.write(f"[{datetime.datetime.now()}]\t A client connected with IP address: {self.address[0]}\n")
             f.close()
 
+        #Key Exchange
+        try:
+            SessionKey = self.client.recv(1024)
+            if not SessionKey: raise ConnectionAbortedError
+            SessionKey = pow(int.from_bytes(SessionKey, 'big'), int(RSAKey_Private), int(RSAKey_N))
+            SessionKey = SessionKey.to_bytes(32, 'big')
+        except Exception as e:
+            #Audit
+            with logfile_lock:
+                f = open(LogfileName, 'a')
+                f.write(f"[{datetime.datetime.now()}]\t Client Unexpectedly Discconected During Key Exchange with Error: [{e}] from IP address: {self.address[0]}\n")
+                f.close()
+                print(f"Connection Error: [{e}] in Thread: [{self.name}] - Ending Thread...")
+                return
         
+        #Create Cryptography Object
+        Cryptor = AESCrypto(SessionKey)
+
         while True:
+
             try:
                 command = self.client.recv(1024).decode('ascii').split()
                 if not command: raise ConnectionAbortedError
@@ -734,11 +767,36 @@ if __name__ == "__main__":
     #print((True, True, False, True) & Password_Requirment[1:] == Password_Requirment[1:])
     #print(tuple([a and b for a,b in zip((True, True, False, True), Password_Requirment[1:])])== Password_Requirment[1:])
     print(datetime.datetime.now())
-    s = 'adhwidjw djkpwjdpwjdpowdpjwdpwmdpowjdefijefijeifj esiofiesjfioesjfioejfejsfijsefoijseoiejfioejfiesj fes fioe foesi fjiosejfsei fose fues fse fuosehfseofse ofhseofhosefhe fushfh efoseh fifjesoifjesf'
-    print(s[:-ord(s[len(s)-1:])])
+    # s = """26:fd:ea:a1:f7:18:10:7b:0d:11:37:c3:55:a7:f8:
+    # 5b:ac:ea:7e:93:85:b9:dc:0f:a5:b7:8c:53:b1:d2:
+    # 86:1f:2b:f3:82:48:ad:67:f2:cf:71:d3:52:ea:1e:
+    # 11:63:0c:86:22:29:37:a7:c2:18:50:76:a4:18:65:
+    # 62:08:de:cb:47:49:0f:5e:24:d8:72:fd:16:ed:1c:
+    # 31:c2:c5:74:a3:ed:25:e7:86:15:a9:0a:24:45:65:
+    # 38:48:13:25:f7:4f:2c:b6:1a:54:02:d2:f9:ee:8e:
+    # 40:5a:e7:26:27:cf:8d:fa:16:09:ca:4b:c6:83:2f:
+    # 9f:e4:69:5b:1c:c7:5b:33:6a:d6:71:1a:fb:be:ca:
+    # ec:c6:f0:27:86:a3:05:ad:2d:37:68:b3:a3:48:b6:
+    # 7d:67:6f:4a:bd:b7:f2:12:02:20:3e:25:ff:16:79:
+    # 72:c4:f2:04:c8:83:fe:7f:1c:40:01:97:c5:63:b7:
+    # b8:67:40:c4:69:4f:0c:07:44:63:99:90:5a:b5:32:
+    # fd:9e:67:b6:2c:5d:ca:f4:9e:ff:8b:2c:95:86:74:
+    # db:4b:f7:4a:8f:1a:91:08:59:c5:24:0b:5f:51:34:
+    # 54:30:94:c4:52:69:24:5d:06:d4:dc:d5:44:bf:e4:
+    # b9:01:d2:8f:15:f0:f2:8a:a1:ce:98:91:95:78:d2:
+    # a5"""
 
-
-
+    # s = s.replace('\n', '').replace(':', '').replace(' ', '')
+    # print(int(RSAKey_N.replace('\n', '')))
+    b = 'adkwdkw'.encode()
+    intb = int.from_bytes(b, 'big')
+    print(b)
+    print(intb)
+    a = pow(264545615184, int(RSAKey_Private), int(RSAKey_N))
+    bytea = a.to_bytes(256, 'big')
+    print(a)
+    print(bytea)
+    print(int.from_bytes(bytea, 'big'))
         
 
         
