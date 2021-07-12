@@ -11,7 +11,7 @@ RSAKey_N = """237390962907967993987408641472684912134115876778921560019333633919
 
 publicExponent = 65537
 
-sessionKey = get_random_bytes(256)
+sessionKey = get_random_bytes(32)
 
 sessionKey = pow(int.from_bytes(sessionKey, 'big'), publicExponent, int(RSAKey_N))
 sessionKey = sessionKey.to_bytes(256, 'big')
