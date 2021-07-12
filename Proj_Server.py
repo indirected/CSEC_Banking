@@ -7,10 +7,10 @@ import random
 import threading
 import socket as sc
 import datetime
-from Crypto import Random
 from Crypto.Cipher import AES
 from Crypto.Random import get_random_bytes
 import base64
+import bcolors
 
 server_socket = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
 server_socket.bind(('127.0.0.1', 12345))
@@ -250,6 +250,7 @@ def PasswordAssesment(passwd: str):
 
 
 class CustomerHandlerThread(threading.Thread):
+    __Cryptor = None
     def __init__(self, client: sc.socket, address):
         super().__init__()
         self.client = client
@@ -274,25 +275,26 @@ class CustomerHandlerThread(threading.Thread):
                 f = open(LogfileName, 'a')
                 f.write(f"[{datetime.datetime.now()}]\t Client Unexpectedly Discconected During Key Exchange with Error: [{e}] from IP address: {self.address[0]}\n")
                 f.close()
-                print(f"Connection Error: [{e}] in Thread: [{self.name}] - Ending Thread...")
-                return
+            print(f"Connection Error: [{e}] in Thread: [{self.name}] - Ending Thread...")
+            return
         
         #Create Cryptography Object
-        Cryptor = AESCrypto(SessionKey)
+        self.__Cryptor = AESCrypto(SessionKey)
 
         while True:
 
             try:
-                command = self.client.recv(1024).decode('ascii').split()
+                command = self.client.recv(1024)
                 if not command: raise ConnectionAbortedError
+                command = self.__Cryptor.decrypt(command).split()
             except Exception as e:
                 #Audit
                 with logfile_lock:
                     f = open(LogfileName, 'a')
                     f.write(f"[{datetime.datetime.now()}]\t Client Unexpectedly Discconected with Error: [{e}] from IP address: {self.address[0]}\n")
                     f.close()
-                    print(f"Connection Error: [{e}] in Thread: [{self.name}] - Ending Thread...")
-                    return
+                print(f"Connection Error: [{e}] in Thread: [{self.name}] - Ending Thread...")
+                return
 
             #Audit
             with logfile_lock:
@@ -310,8 +312,8 @@ class CustomerHandlerThread(threading.Thread):
                         f = open(LogfileName, 'a')
                         f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to signup while Logged in from IP address: {self.address[0]}\n")
                         f.close()
-
-                    #TODO You are Already Logged in
+                    #You are Already Logged in
+                    self.SendtoClient(bcolors.REDHIGHLIGHT + "You are already logged in!" + bcolors.ENDC + '\n')
                     continue
                 if len(command) == 3:
                     username = command[1]
@@ -747,7 +749,20 @@ class CustomerHandlerThread(threading.Thread):
             
 
         print(self.name)
-        
+    
+    def SendtoClient(self, msg: str):
+        try:
+            self.client.send(self.__Cryptor.encrypt(msg))
+            return True
+        except Exception as e:
+            #Audit
+            with logfile_lock:
+                f = open(LogfileName, 'a')
+                f.write(f"[{datetime.datetime.now()}]\t Client Unexpectedly Discconected with Error: [{e}] from IP address: {self.address[0]}\n")
+                f.close()
+            print(f"Connection Error: [{e}] in Thread: [{self.name}] - Ending Thread...")
+            return False
+            
 
 
 
@@ -788,15 +803,21 @@ if __name__ == "__main__":
 
     # s = s.replace('\n', '').replace(':', '').replace(' ', '')
     # print(int(RSAKey_N.replace('\n', '')))
-    b = 'adkwdkw'.encode()
-    intb = int.from_bytes(b, 'big')
+    # b = 'adkwdkw'.encode()
+    # intb = int.from_bytes(b, 'big')
+    # print(b)
+    # print(intb)
+    # a = pow(264545615184, int(RSAKey_Private), int(RSAKey_N))
+    # bytea = a.to_bytes(256, 'big')
+    # print(a)
+    # print(bytea)
+    # print(int.from_bytes(bytea, 'big'))
+
+    s = bcolors.REDHIGHLIGHT + "You are already logged in!" + bcolors.ENDC + '\n'
+    b = s.encode('ascii')
+    print(s)
     print(b)
-    print(intb)
-    a = pow(264545615184, int(RSAKey_Private), int(RSAKey_N))
-    bytea = a.to_bytes(256, 'big')
-    print(a)
-    print(bytea)
-    print(int.from_bytes(bytea, 'big'))
+    print(b.decode('ascii'))
         
 
         
