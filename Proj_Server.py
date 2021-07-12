@@ -197,14 +197,17 @@ class account:
         return 1 #Success
 
     def AcceptRequest(self, caller, user, conf_lvl, integrity_lvl):
-        if user in self.__pendinglist and caller == self.__owner:
-            with accounts_lock:
-                self.__pendinglist.remove(user)
-                self.__userlist[user] = (conf_lvl, integrity_lvl)
-                f = open(accounts_filename, 'w')
-                json.dump(accounts_dict, f, indent=4)
-                f.close()
-            return 1 #Success
+        if caller == self.__owner:
+            if user in self.__pendinglist:
+                with accounts_lock:
+                    self.__pendinglist.remove(user)
+                    self.__userlist[user] = (conf_lvl, integrity_lvl)
+                    f = open(accounts_filename, 'w')
+                    json.dump(accounts_dict, f, indent=4)
+                    f.close()
+                return 1 #Success
+            else: return 0 #User Not in Pending
+        else: return -1 #Access Denied
 
     def isMember(self, user):
         return user in list(self.__userlist)
@@ -551,8 +554,8 @@ class CustomerHandlerThread(threading.Thread):
                                     f.close()
                                 #User Accepted
                                 if not self.SendtoClient(bcolors.GREENHIGHLIGHT + "User Accepted!" + bcolors.ENDC + '\n'): return
-                                
-                            else:
+                              
+                            elif acceptresult == 0:
                                 #Audit
                                 with logfile_lock:
                                     f = open(LogfileName, 'a')
@@ -560,6 +563,14 @@ class CustomerHandlerThread(threading.Thread):
                                     f.close()
                                 #User not in pending list
                                 if not self.SendtoClient(bcolors.REDHIGHLIGHT + "User is not in the Pending List!" + bcolors.ENDC + '\n'): return
+                            elif acceptresult == -1:
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Accepted User: [{username}] Request to Join Account: [{accountnum}] with No Owner Access from IP address: {self.address[0]}\n")
+                                    f.close()
+                                #User not in pending list
+                                if not self.SendtoClient(bcolors.REDHIGHLIGHT + "You are not the Owner of this Account. Access Denied!" + bcolors.ENDC + '\n'): return
                         else:
                             #Audit
                             with logfile_lock:
