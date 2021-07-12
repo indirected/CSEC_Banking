@@ -9,6 +9,7 @@ import socket as sc
 import datetime
 import bcolors
 from Encryption import AESCrypto
+import queue
 
 server_socket = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
 server_socket.bind(('127.0.0.1', 12345))
@@ -119,6 +120,8 @@ class account:
     __userlist = {}
     __pendinglist = []
     __accountnumber = 1000000001
+    __DepositHistory = queue.Queue()
+    __WithdrawHistory = queue.Queue()
 
     def __init__(self, ownerusername, accounttype, initialamount, conf_lvl, integrity_lvl):
         self.__accounttype = accounttype
@@ -145,6 +148,8 @@ class account:
                 if self.__balance >= amount:
                     with accounts_lock:
                         self.__balance -= amount
+                        if self.__WithdrawHistory.qsize() == 5: self.__WithdrawHistory.get()
+                        self.__WithdrawHistory.put((user, amount))
                         f = open(accounts_filename, 'w')
                         json.dump(accounts_dict, f, indent=4)
                         f.close()
@@ -156,6 +161,8 @@ class account:
     def Intake(self, amount):
         with accounts_lock:
             self.__balance += amount
+            if self.__DepositHistory.qsize() == 5: self.__DepositHistory.get()
+            self.__DepositHistory.put(amount)
             f = open(accounts_filename, 'w')
             json.dump(accounts_dict, f, indent=4)
             f.close()
@@ -166,6 +173,8 @@ class account:
                 if self.__balance >= amount:
                     with accounts_lock:
                         self.__balance -= amount
+                        if self.__WithdrawHistory.qsize() == 5: self.__WithdrawHistory.get()
+                        self.__WithdrawHistory.put((user, amount))
                         f = open(accounts_filename, 'w')
                         json.dump(accounts_dict, f, indent=4)
                         f.close()
@@ -203,8 +212,11 @@ class account:
     def PrintAccountInfo(self, user):
         if user in list(self.__userlist):
             if self.__userlist[user][0].value >= self.__conf_lvl.value and self.__userlist[user][1].value <= self.__integrity_lvl.value:
-                #TODO Print Account info
-                pass
+                #Print Account info
+                return (self.__accounttype, self.__creationdate, self.__balance, self.__owner, list(self.__userlist), self.__pendinglist
+                        , self.__WithdrawHistory, self.__DepositHistory)
+        else: return -1 #Access Denied
+                
 
 
 
@@ -581,21 +593,58 @@ class CustomerHandlerThread(threading.Thread):
                     continue
                 if command[1] == "myaccounts":
                     if len(command) == 2:
-                        result = [acc for acc in list(accounts_dict) if accounts_dict[acc].isMember(LoggedinUser)]
+                        result = ['\t' + str(acc) + '\n' for acc in list(accounts_dict) if accounts_dict[acc].isMember(LoggedinUser)]
                         #Audit
                         with logfile_lock:
                             f = open(LogfileName, 'a')
                             f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Requested his Accounts List from IP address: {self.address[0]}\n")
                             f.close()
-                        #TODO send the list
+                        #send the list
+                        if not self.SendtoClient(bcolors.GRAYHIGHLIGHT + "Your Accounts:" + bcolors.ENDC + '\n'
+                        + ''.join(result)): return
                     continue
+
+
                 elif command[1] == "account":
                     if len(command) == 3:
                         if command[2].isdigit():
                             accountnum = int(command[2])
                             if accountnum in list(accounts_dict):
-                                #TODO
-                                pass
+                                #Senf Account Info
+                                result = accounts_dict[accountnum].PrintAccountInfo(LoggedinUser)
+                                if result == -1:
+                                    #Audit
+                                    with logfile_lock:
+                                        f = open(LogfileName, 'a')
+                                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Show Account: [{accountnum}] with no Read Access from IP address: {self.address[0]}\n")
+                                        f.close()
+                                    #Access Denied
+                                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "You Don't Have Read Access to this Account!" + bcolors.ENDC + '\n'): return
+                                    continue
+                                else:
+                                    #Audit
+                                    with logfile_lock:
+                                        f = open(LogfileName, 'a')
+                                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Requested to Show Account: [{accountnum}] from IP address: {self.address[0]}\n")
+                                        f.close()
+
+                                    #Construct messege
+                                    msg = f"Account Type: {result[0].name}\n"
+                                    msg += f"Account Creation Date: {result[1]}\n"
+                                    msg += f"Account Balance: {result[2]}\n"
+                                    msg += f"Account Owner: {result[3]}"
+                                    msg += f"Account User List:\n\t {'\n\t'.join(result[4])}\n"
+                                    msg += f"Account Pending List:\n\t {'\n\t'.join(result[5])}\n"
+                                    msg += "Account Last 5 Withdraws:\n"
+                                    for i in list(result[6].queue):
+                                        msg += f"\t -{i[1]} By User: {i[0]}\n"
+                                    msg += "Account Last 5 Deposits:\n"
+                                    for i in list(result[7].queue):
+                                        msg += f"\t +{i[1]}\n"
+                                    
+                                    if not self.SendtoClient(bcolors.GRAYHIGHLIGHT + f"Information of Account: {accountnum}" + bcolors.ENDC
+                                    + '\n' + msg): return
+
                             else:
                                 #Audit
                                 with logfile_lock:
@@ -843,11 +892,13 @@ if __name__ == "__main__":
     # print(bytea)
     # print(int.from_bytes(bytea, 'big'))
 
-    s = bcolors.REDHIGHLIGHT + "You are already logged in!" + bcolors.ENDC + '\n'
-    b = s.encode('ascii')
-    print(s)
-    print(b)
-    print(b.decode('ascii'))
+    # s = bcolors.REDHIGHLIGHT + "You are already logged in!" + bcolors.ENDC + '\n'
+    # b = s.encode('ascii')
+    # print(s)
+    # print(b)
+    # print(b.decode('ascii'))
+
+   
         
 
         
