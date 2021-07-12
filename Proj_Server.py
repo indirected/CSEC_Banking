@@ -144,7 +144,7 @@ class account:
     __accountnumber = 1000000001
 
     def __init__(self, ownerusername, accounttype, initialamount, conf_lvl, integrity_lvl):
-        self.__acounttype = accounttype
+        self.__accounttype = accounttype
         self.__creationdate = datetime.date.today()
         self.__balance = initialamount
         self.__conf_lvl = conf_lvl
@@ -313,7 +313,7 @@ class CustomerHandlerThread(threading.Thread):
                         f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to signup while Logged in from IP address: {self.address[0]}\n")
                         f.close()
                     #You are Already Logged in
-                    self.SendtoClient(bcolors.REDHIGHLIGHT + "You are already logged in!" + bcolors.ENDC + '\n')
+                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "You are already logged in!" + bcolors.ENDC + '\n'): return
                     continue
                 if len(command) == 3:
                     username = command[1]
@@ -324,7 +324,9 @@ class CustomerHandlerThread(threading.Thread):
                             f = open(LogfileName, 'a')
                             f.write(f"[{datetime.datetime.now()}]\t A client Tried to Create a Repetitive User: [{username}] with IP address: {self.address[0]}\n")
                             f.close()
-                        #TODO User Already Exists
+                        #User Already Exists
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "User Already Exists!" + bcolors.ENDC + '\n'): return
+
                         
                     #Test username to be in the Allowed character list
                     elif ''.join([char for char in username if char in alphabet+ALPHABET+digits]) == username:
@@ -339,23 +341,29 @@ class CustomerHandlerThread(threading.Thread):
                                 f = open(LogfileName, 'a')
                                 f.write(f"[{datetime.datetime.now()}]\t A client Created a New User: [{username}] with IP address: {self.address[0]}\n")
                                 f.close()
-                            #TODO User Created
+                            #User Created
+                            if not self.SendtoClient(bcolors.GREENHIGHLIGHT + "User Created Successfuly!" + bcolors.ENDC + '\n'): return
                         elif passAssesst == 0:
-                            #TODO Password is short
-                            pass
+                            #Password is short
+                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + f"Password is too short. Minimum Length is: {Password_Requirment[0]}!" + bcolors.ENDC + '\n'): return
                         elif passAssesst == -1:
-                            #TODO Reqs not met - Print Reqs
-                            pass
+                            #Reqs not met - Print Reqs
+                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Password requirement not met!" + bcolors.ENDC + '\n'
+                            + f"Password Requirements:\n\t MustHave(Lower, Upper, Digits, Specials) = {Password_Requirment[1:]}\n"
+                            + f"Allowed Special Characters = {specials}\n"): return
                         elif passAssesst == -2:
-                            #TODO Not Allowed characters in passwd
-                            pass
+                            #Not Allowed characters in passwd
+                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "This password is not Allowed!" + bcolors.ENDC + '\n'
+                            + f"Allowed Characters = Lower and Upper Case Letters, Digits and {specials}\n"): return
                     else:
                         #Audit
                         with logfile_lock:
                             f = open(LogfileName, 'a')
                             f.write(f"[{datetime.datetime.now()}]\t A client Tried to Create a Invalid Username: [{username}] with IP address: {self.address[0]}\n")
                             f.close()
-                        #TODO Invalid Username
+                        #Invalid Username
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "This username is not Allowed!" + bcolors.ENDC + '\n'
+                        + f"Allowed Characters = Lower and Upper Case Letters, Digits\n"): return
                 continue
 
 
@@ -366,7 +374,8 @@ class CustomerHandlerThread(threading.Thread):
                         f = open(LogfileName, 'a')
                         f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to loggin while Logged in from IP address: {self.address[0]}\n")
                         f.close()
-                    #TODO You Are Already Logged in
+                    #You Are Already Logged in
+                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "You are already logged in!" + bcolors.ENDC + '\n'): return
                     continue
                 if len(command) == 3:
                     username = command[1]
@@ -382,14 +391,16 @@ class CustomerHandlerThread(threading.Thread):
                                 f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Logged in from IP address: {self.address[0]}\n")
                                 f.close()
                             
-                            #TODO Logged in
+                            #Logged in
+                            if not self.SendtoClient(bcolors.GREENHIGHLIGHT + "Logged in Successfuly!" + bcolors.ENDC + '\n'): return
                         else:
                             #Audit
                             with logfile_lock:
                                 f = open(LogfileName, 'a')
                                 f.write(f"[{datetime.datetime.now()}]\t User: [{username}] Tried to loggin with Wrong Password: [{password}] from IP address: {self.address[0]}\n")
                                 f.close()
-                            #TODO Wrong Passwd
+                            #Wrong Passwd
+                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Wrong Password!" + bcolors.ENDC + '\n'): return
 
                     else:
                         #Audit
@@ -397,8 +408,8 @@ class CustomerHandlerThread(threading.Thread):
                             f = open(LogfileName, 'a')
                             f.write(f"[{datetime.datetime.now()}]\t A Client Tried to login with a Non-Existing User: [{username}] with Password: [{password}] from IP address: {self.address[0]}\n")
                             f.close()
-                        #TODO user not exists
-                        pass
+                        #user not exists
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Username not Exists!" + bcolors.ENDC + '\n'): return
                 continue
 
 
@@ -409,37 +420,46 @@ class CustomerHandlerThread(threading.Thread):
                         f = open(LogfileName, 'a')
                         f.write(f"[{datetime.datetime.now()}]\t A client Tried to Create a new Account without Logging in from IP address: {self.address[0]}\n")
                         f.close()
-                    #TODO Login First
+                    #Login First
+                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Login First!" + bcolors.ENDC + '\n'): return
                     continue
                 if len(command) == 5:
                     EnumedAccountType = StringToAccountType(command[1])
                     if EnumedAccountType == -1:
-                        #TODO Wrong Account Type
+                        #Wrong Account Type
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Wrong Account Type!" + bcolors.ENDC + '\n'
+                        + f"Allowed Account Types: {Account_Types.ShortTermSaving.name}, {Account_Types.LongTermSaving.name}, {Account_Types.Checking.name}, {Account_Types.GharzAlHassaneh.name}\n"): return
                         continue
                     
                     if command[2].isdigit(): 
                         amount = int(command[2])
                     else:
-                        #TODO Wrong Amount
+                        #Wrong Amount
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Enter an Integer for Amount!" + bcolors.ENDC + '\n'): return
                         continue
 
                     EnumedConf_lvl = StringToConfidentialityLvl(command[3])
                     if EnumedConf_lvl == -1:
-                        #TODO Wrong Conf Label
+                        #Wrong Conf Label
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Wrong Confidentiality Level!" + bcolors.ENDC + '\n'
+                        + f"Allowed Confidentiality levels: {Confidentiality_lvl_List.TopSecret.name}, {Confidentiality_lvl_List.Secret.name}, {Confidentiality_lvl_List.Confidential.name}, {Confidentiality_lvl_List.Unclassified.name}\n"): return
                         continue
                     
                     EnumedIntegrity_lvl = StringToIntegrityLvl(command[4])
                     if EnumedIntegrity_lvl == -1:
-                        #TODO Wrong Integrity Label
+                        #Wrong Integrity Label
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Wrong Integrity Level!" + bcolors.ENDC + '\n'
+                        + f"Allowed Confidentiality levels: {Integrity_lvl_List.VeryTrusted.name}, {Integrity_lvl_List.Trusted.name}, {Integrity_lvl_List.SlightlyTrusted.name}, {Integrity_lvl_List.Untrusted.name}\n"): return
                         continue
 
-                    acountnum = account(LoggedinUser, EnumedAccountType, amount, EnumedConf_lvl, EnumedIntegrity_lvl)
+                    accountnum = account(LoggedinUser, EnumedAccountType, amount, EnumedConf_lvl, EnumedIntegrity_lvl)
                     #Audit
                     with logfile_lock:
                         f = open(LogfileName, 'a')
-                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Created an Account: [{acountnum}] from IP address: {self.address[0]}\n")
+                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Created an Account: [{accountnum}] from IP address: {self.address[0]}\n")
                         f.close()
-                    #TODO Print Accountnum
+                    #Print Accountnum
+                    if not self.SendtoClient(bcolors.GREENHIGHLIGHT + f"Your Account Created with Account Number: [{accountnum}]!" + bcolors.ENDC + '\n'): return
                 continue
 
 
@@ -450,7 +470,8 @@ class CustomerHandlerThread(threading.Thread):
                         f = open(LogfileName, 'a')
                         f.write(f"[{datetime.datetime.now()}]\t A client Tried to Join an Account without Logging in from IP address: {self.address[0]}\n")
                         f.close()
-                    #TODO Login First
+                    #Login First
+                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Login First!" + bcolors.ENDC + '\n'): return
                     continue
                 if len(command) == 2:
                     if command[1].isdigit():
@@ -463,7 +484,8 @@ class CustomerHandlerThread(threading.Thread):
                                     f = open(LogfileName, 'a')
                                     f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Join Account: [{accountnum}] While Already in Pending from IP address: {self.address[0]}\n")
                                     f.close()
-                                #TODO Already in Pending
+                                #Already in Pending
+                                if not self.SendtoClient(bcolors.REDHIGHLIGHT + "You Are Already in this Account's Pending List!" + bcolors.ENDC + '\n'): return
                                 continue
                             elif joinresult == 0:
                                 #Audit
@@ -471,7 +493,8 @@ class CustomerHandlerThread(threading.Thread):
                                     f = open(LogfileName, 'a')
                                     f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Join Account: [{accountnum}] While Already a Member from IP address: {self.address[0]}\n")
                                     f.close()
-                                #TODO Already a member
+                                #Already a member
+                                if not self.SendtoClient(bcolors.REDHIGHLIGHT + "You Are Already a Member of this Account!" + bcolors.ENDC + '\n'): return
                                 continue
                             elif joinresult == 1:
                                 #Audit
@@ -479,7 +502,8 @@ class CustomerHandlerThread(threading.Thread):
                                     f = open(LogfileName, 'a')
                                     f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Requested to Join Account: [{accountnum}] from IP address: {self.address[0]}\n")
                                     f.close()
-                                #TODO Success
+                                #Success
+                                if not self.SendtoClient(bcolors.GREENHIGHLIGHT + "Join Request Submitted. Wait for Approval!" + bcolors.ENDC + '\n'): return
                                 
                         else:
                             #Audit
@@ -487,14 +511,16 @@ class CustomerHandlerThread(threading.Thread):
                                 f = open(LogfileName, 'a')
                                 f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Join Account: [{accountnum}] Which Doesn't Exist from IP address: {self.address[0]}\n")
                                 f.close()
-                            #TODO Account doesnt Exist
+                            #Account doesnt Exist
+                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Account Not Exists!" + bcolors.ENDC + '\n'): return
                     else:
                         #Audit
                         with logfile_lock:
                             f = open(LogfileName, 'a')
                             f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Join A non Valid Account number from IP address: {self.address[0]}\n")
                             f.close()
-                        #TODO Enter a valid Account num
+                        #Enter a valid Account num
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Enter an Integer for Account Number!" + bcolors.ENDC + '\n'): return
                 continue
 
                 
@@ -505,7 +531,8 @@ class CustomerHandlerThread(threading.Thread):
                         f = open(LogfileName, 'a')
                         f.write(f"[{datetime.datetime.now()}]\t A client Tried to Accept a Join without Logging in from IP address: {self.address[0]}\n")
                         f.close()
-                    #TODO Login First
+                    #Login First
+                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Login First!" + bcolors.ENDC + '\n'): return
                     continue
                 if len(command) == 5:
                     if command[1].isdigit():
@@ -514,12 +541,16 @@ class CustomerHandlerThread(threading.Thread):
                             username = command[2]
                             EnumedConf_lvl = StringToConfidentialityLvl(command[3])
                             if EnumedConf_lvl == -1:
-                                #TODO Wrong Conf Label
+                                #Wrong Conf Label
+                                if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Wrong Confidentiality Level!" + bcolors.ENDC + '\n'
+                                + f"Allowed Confidentiality levels: {Confidentiality_lvl_List.TopSecret.name}, {Confidentiality_lvl_List.Secret.name}, {Confidentiality_lvl_List.Confidential.name}, {Confidentiality_lvl_List.Unclassified.name}\n"): return
                                 continue
                             
                             EnumedIntegrity_lvl = StringToIntegrityLvl(command[4])
                             if EnumedIntegrity_lvl == -1:
-                                #TODO Wrong Integrity Label
+                                #Wrong Integrity Label
+                                if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Wrong Integrity Level!" + bcolors.ENDC + '\n'
+                                + f"Allowed Confidentiality levels: {Integrity_lvl_List.VeryTrusted.name}, {Integrity_lvl_List.Trusted.name}, {Integrity_lvl_List.SlightlyTrusted.name}, {Integrity_lvl_List.Untrusted.name}\n"): return
                                 continue
                             
                             acceptresult = accounts_dict[accountnum].AcceptRequest(LoggedinUser, username, EnumedConf_lvl, EnumedIntegrity_lvl)
@@ -529,7 +560,8 @@ class CustomerHandlerThread(threading.Thread):
                                     f = open(LogfileName, 'a')
                                     f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Accepted User: [{username}] Request to Join Account: [{accountnum}] from IP address: {self.address[0]}\n")
                                     f.close()
-                                #TODO User Accepted
+                                #User Accepted
+                                if not self.SendtoClient(bcolors.GREENHIGHLIGHT + "User Accepted!" + bcolors.ENDC + '\n'): return
                                 
                             else:
                                 #Audit
@@ -537,15 +569,16 @@ class CustomerHandlerThread(threading.Thread):
                                     f = open(LogfileName, 'a')
                                     f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Accepted User: [{username}] Request to Join Account: [{accountnum}] While he is not in Pending from IP address: {self.address[0]}\n")
                                     f.close()
-                                #TODO User not in pending list
-                                
+                                #User not in pending list
+                                if not self.SendtoClient(bcolors.REDHIGHLIGHT + "User is not in the Pending List!" + bcolors.ENDC + '\n'): return
                         else:
                             #Audit
                             with logfile_lock:
                                 f = open(LogfileName, 'a')
                                 f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Accept a Request on Account: [{accountnum}] Which Doesn't Exist from IP address: {self.address[0]}\n")
                                 f.close()
-                            #TODO Account doesnt Exist
+                            #Account doesnt Exist
+                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Account Not Exists!" + bcolors.ENDC + '\n'): return
                             
                     else:
                         #Audit
@@ -553,7 +586,8 @@ class CustomerHandlerThread(threading.Thread):
                             f = open(LogfileName, 'a')
                             f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Accept a Request on A non Valid Account number from IP address: {self.address[0]}\n")
                             f.close()
-                        #TODO wrong Account number
+                        #wrong Account number
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Enter an Integer for Account Number!" + bcolors.ENDC + '\n'): return
                         
                 continue
 
@@ -565,7 +599,8 @@ class CustomerHandlerThread(threading.Thread):
                         f = open(LogfileName, 'a')
                         f.write(f"[{datetime.datetime.now()}]\t A client Tried to Request a Show without Logging in from IP address: {self.address[0]}\n")
                         f.close()
-                    #TODO Login First
+                    #Login First
+                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Login First!" + bcolors.ENDC + '\n'): return
                     continue
                 if command[1] == "myaccounts":
                     if len(command) == 2:
@@ -590,14 +625,16 @@ class CustomerHandlerThread(threading.Thread):
                                     f = open(LogfileName, 'a')
                                     f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Show Account: [{accountnum}] Which Doesn't Exist from IP address: {self.address[0]}\n")
                                     f.close()
-                                #TODO Account not exists
+                                #Account not exists
+                                if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Account Not Exists!" + bcolors.ENDC + '\n'): return
                         else:
                             #Audit
                             with logfile_lock:
                                 f = open(LogfileName, 'a')
                                 f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Requested to Show A non Valid Account number from IP address: {self.address[0]}\n")
                                 f.close()
-                            #TODO Enter a valid Account num
+                            #Enter a valid Account num
+                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Enter an Integer for Account Number!" + bcolors.ENDC + '\n'): return
                 continue
 
 
@@ -608,7 +645,8 @@ class CustomerHandlerThread(threading.Thread):
                         f = open(LogfileName, 'a')
                         f.write(f"[{datetime.datetime.now()}]\t A client Tried to Deposit to an Account without Logging in from IP address: {self.address[0]}\n")
                         f.close()
-                    #TODO Login First
+                    #Login First
+                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Login First!" + bcolors.ENDC + '\n'): return
                     continue
                 if len(command) == 4:
                     if command[1].isdigit():
@@ -626,7 +664,8 @@ class CustomerHandlerThread(threading.Thread):
                                                 f = open(LogfileName, 'a')
                                                 f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Deposited: [{amount}T] from Account: [{source}] to Account: [{destination}] from IP address: {self.address[0]}\n")
                                                 f.close()
-                                            #TODO Deposit Success
+                                            #Deposit Success
+                                            if not self.SendtoClient(bcolors.GREENHIGHLIGHT + f"{amount} Tomans Dopisted in [{destination}] from [{source}]!" + bcolors.ENDC + '\n'): return
                                             
                                         elif depositresult == 0:
                                             #Audit
@@ -634,49 +673,56 @@ class CustomerHandlerThread(threading.Thread):
                                                 f = open(LogfileName, 'a')
                                                 f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit: [{amount}T] from Account: [{source}] to Account: [{destination}] With Insufficient Source Balance from IP address: {self.address[0]}\n")
                                                 f.close()
-                                            #TODO Low Balance
+                                            #Low Balance
+                                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Source Account Balance is not Sufficient!" + bcolors.ENDC + '\n'): return
                                         elif depositresult == -1:
                                             #Audit
                                             with logfile_lock:
                                                 f = open(LogfileName, 'a')
                                                 f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit: [{amount}T] from Account: [{source}] to Account: [{destination}] With No Write Access to Source from IP address: {self.address[0]}\n")
                                                 f.close()
-                                            #TODO Access Denied
+                                            #Access Denied
+                                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "You Dont have Write Access on the Source Account!" + bcolors.ENDC + '\n'): return
                                     else:
                                         #Audit
                                         with logfile_lock:
                                             f = open(LogfileName, 'a')
                                             f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit: [InValid] Amount from Account: [{source}] to Account: [{destination}] from IP address: {self.address[0]}\n")
                                             f.close()
-                                        #TODO Invalid Amount
+                                        #Invalid Amount
+                                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Enter an Integer for Amount!" + bcolors.ENDC + '\n'): return
                                 else:
                                     #Audit
                                     with logfile_lock:
                                         f = open(LogfileName, 'a')
                                         f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit from Account: [{source}] to Account: [{destination}] Which doesn't Exist from IP address: {self.address[0]}\n")
                                         f.close()
-                                    #TODO Destination not exists
+                                    #Destination not exists
+                                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Destination Account Not Exists!" + bcolors.ENDC + '\n'): return
                             else:
                                 #Audit
                                 with logfile_lock:
                                     f = open(LogfileName, 'a')
                                     f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit from Account: [{source}] to an [Invalid] Account from IP address: {self.address[0]}\n")
                                     f.close()
-                                #TODO Invalid Destination
+                                #Invalid Destination
+                                if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Enter an Integer for Destination Account Number!" + bcolors.ENDC + '\n'): return
                         else:
                             #Audit
                             with logfile_lock:
                                 f = open(LogfileName, 'a')
                                 f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit from Account: [{source}] Which doesn't Exist from IP address: {self.address[0]}\n")
                                 f.close()
-                            #TODO Source not exists
+                            #Source not exists
+                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Source Account Not Exists!" + bcolors.ENDC + '\n'): return
                     else:
                         #Audit
                         with logfile_lock:
                             f = open(LogfileName, 'a')
                             f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Deposit from an [Invalid] Account from IP address: {self.address[0]}\n")
                             f.close()
-                        #TODO Invalid Source
+                        #Invalid Source
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Enter an Integer for Source Account Number!" + bcolors.ENDC + '\n'): return
                 continue
 
             elif command[0] == "withdraw":
@@ -686,7 +732,8 @@ class CustomerHandlerThread(threading.Thread):
                         f = open(LogfileName, 'a')
                         f.write(f"[{datetime.datetime.now()}]\t A client Tried to Withdraw from an Account without Logging in from IP address: {self.address[0]}\n")
                         f.close()
-                    #TODO Login First
+                    #Login First
+                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Login First!" + bcolors.ENDC + '\n'): return
                     continue
                 if len(command) == 3:
                     if command[1].isdigit():
@@ -701,35 +748,40 @@ class CustomerHandlerThread(threading.Thread):
                                         f = open(LogfileName, 'a')
                                         f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Successfuly Withdrawed: [{amount}T] from Account: [{source}] from IP address: {self.address[0]}\n")
                                         f.close()
-                                    #TODO Withdraw Success
+                                    #Withdraw Success
+                                    if not self.SendtoClient(bcolors.GREENHIGHLIGHT + f"{amount} Tomans Withdrawed from [{source}]!" + bcolors.ENDC + '\n'): return
                                 elif withdrawresult == 0:
                                     #Audit
                                     with logfile_lock:
                                         f = open(LogfileName, 'a')
                                         f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: [{amount}T] from Account: [{source}] With Insufficent Balance from IP address: {self.address[0]}\n")
                                         f.close()
-                                    #TODO Low Balance
+                                    #Low Balance
+                                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Account Balance is not Sufficient!" + bcolors.ENDC + '\n'): return
                                 elif withdrawresult == -1:
                                     #Audit
                                     with logfile_lock:
                                         f = open(LogfileName, 'a')
                                         f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: [{amount}T] from Account: [{source}] With No Write Access from IP address: {self.address[0]}\n")
                                         f.close()
-                                    #TODO Access Denied
+                                    #Access Denied
+                                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "You Dont have Write Access on the Account!" + bcolors.ENDC + '\n'): return
                             else:
                                 #Audit
                                 with logfile_lock:
                                     f = open(LogfileName, 'a')
                                     f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: [InValid] Amount from Account: [{source}] from IP address: {self.address[0]}\n")
                                     f.close()
-                                #TODO Invalid Amount
+                                #Invalid Amount
+                                if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Enter an Integer for Amount!" + bcolors.ENDC + '\n'): return
                         else:
                             #Audit
                             with logfile_lock:
                                 f = open(LogfileName, 'a')
                                 f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: from Account: [{source}] Which doesn't Exist from IP address: {self.address[0]}\n")
                                 f.close()
-                            #TODO Source not exists
+                            #Source not exists
+                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Account Not Exists!" + bcolors.ENDC + '\n'): return
                             
                     else:
                         #Audit
@@ -737,7 +789,8 @@ class CustomerHandlerThread(threading.Thread):
                             f = open(LogfileName, 'a')
                             f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to Withdraw: from Account: [Invalid] Which doesn't Exist from IP address: {self.address[0]}\n")
                             f.close()
-                        #TODO Invalid Source
+                        #Invalid Source
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Enter an Integer for Account Number!" + bcolors.ENDC + '\n'): return
                 continue
 
 
