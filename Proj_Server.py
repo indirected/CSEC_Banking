@@ -644,8 +644,8 @@ class CustomerHandlerThread(threading.Thread):
                                     msg += f"Account Creation Date: {result[1]}\n"
                                     msg += f"Account Balance: {result[2]}\n"
                                     msg += f"Account Owner: {result[3]}"
-                                    msg += f"Account User List:\n\t {'\n\t'.join(result[4])}\n"
-                                    msg += f"Account Pending List:\n\t {'\n\t'.join(result[5])}\n"
+                                    msg += "Account User List:\n\t {}\n".format('\n\t'.join(result[4]))
+                                    msg += "Account Pending List:\n\t {}\n".format('\n\t'.join(result[5]))
                                     msg += "Account Last 5 Withdraws:\n"
                                     for i in list(result[6].queue):
                                         msg += f"\t -{i[1]} By User: {i[0]}\n"
