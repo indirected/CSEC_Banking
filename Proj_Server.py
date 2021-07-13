@@ -263,6 +263,9 @@ class account:
     def isMember(self, user):
         return user in list(self.__userlist)
 
+    def getAccountNumber(self):
+        return self.__accountnumber
+
     def PrintAccountInfo(self, user):
         if user in list(self.__userlist):
             if StringToConfidentialityLvl(self.__userlist[user][0]).value >= StringToConfidentialityLvl(self.__conf_lvl).value and \
@@ -507,7 +510,7 @@ class CustomerHandlerThread(threading.Thread):
                         f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Created an Account: [{accountnum}] from IP address: {self.address[0]}\n")
                         f.close()
                     #Print Accountnum
-                    if not self.SendtoClient(bcolors.GREENHIGHLIGHT + f"Your Account Created with Account Number: [{accountnum}]!" + bcolors.ENDC + '\n'): return
+                    if not self.SendtoClient(bcolors.GREENHIGHLIGHT + f"Your Account Created with Account Number: [{accountnum.getAccountNumber()}]!" + bcolors.ENDC + '\n'): return
                 continue
 
 
