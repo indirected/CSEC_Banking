@@ -1,21 +1,28 @@
 {
     "1000000001": {
         "DepositHistory": [],
-        "WithdrawHistory": [],
+        "WithdrawHistory": [
+            [
+                "user2",
+                20
+            ]
+        ],
         "_account__accountnumber": 1000000001,
         "_account__accounttype": "Checking",
-        "_account__balance": 1200,
+        "_account__balance": 1180,
         "_account__conf_lvl": "Secret",
         "_account__creationdate": "2021-07-13",
         "_account__integrity_lvl": "Trusted",
         "_account__owner": "user1",
-        "_account__pendinglist": [
-            "user2"
-        ],
+        "_account__pendinglist": [],
         "_account__userlist": {
             "user1": [
                 "Secret",
                 "Trusted"
+            ],
+            "user2": [
+                "Confidential",
+                "VeryTrusted"
             ]
         }
     },
@@ -41,17 +48,17 @@
         "DepositHistory": [],
         "WithdrawHistory": [],
         "_account__accountnumber": 1000000003,
-        "_account__accounttype": "LongTermSaving",
-        "_account__balance": 5000,
-        "_account__conf_lvl": "TopSecret",
+        "_account__accounttype": null,
+        "_account__balance": null,
+        "_account__conf_lvl": null,
         "_account__creationdate": "2021-07-13",
-        "_account__integrity_lvl": "SlightlyTrusted",
-        "_account__owner": "user2",
+        "_account__integrity_lvl": null,
+        "_account__owner": null,
         "_account__pendinglist": [],
         "_account__userlist": {
-            "user2": [
-                "TopSecret",
-                "SlightlyTrusted"
+            "null": [
+                null,
+                null
             ]
         }
     }

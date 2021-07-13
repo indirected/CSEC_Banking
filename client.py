@@ -135,10 +135,12 @@ if __name__ == "__main__":
 
 
         # handle withdraw command
-        elif(splittedCmd[0] == "deposit"):
-            if(len(splittedCmd) != 4):
-                print("Wrong command format!\n\tUsage: withdraw [from_account_no] [to_account_no] [amount]")
+        elif(splittedCmd[0] == "withdraw"):
+            if(len(splittedCmd) != 3):
+                print("Wrong command format!\n\tUsage: withdraw [from_account_no] [amount]")
                 continue
+            print(cmd)
+            print(splittedCmd)
             SendtoServer(cmd)
             print("<<< " + ReceivefromServer())
 

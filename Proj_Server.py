@@ -115,7 +115,7 @@ class user:
         #self.__integrity_lvl = integrity_lvl
         salt = RandomSubstring(alphabet + ALPHABET + digits, 10)
         with passhash_lock:
-            user_passhash_dict[username] = (hashlib.sha256((password + salt).encode('ascii')).hexdigest(), salt)
+            user_passhash_dict[self.__username] = (hashlib.sha256((password + salt).encode('ascii')).hexdigest(), salt)
             f = open(user_passhash_filename, 'w')
             json.dump(user_passhash_dict, f, indent=4)
             f.close()
@@ -139,11 +139,13 @@ def AccountsJsonLoader():
         obj = jsons.load(tmpdict[acc], account)
         obj.WithdrawHistory = deque()
         for hist in tmpdict[acc]['WithdrawHistory']:
-            obj.WithdrawHistory.appendleft((hist[0], hist[1]))
+            obj.WithdrawHistory.append((hist[0], hist[1]))
         
         obj.DepositHistory = deque()
         for hist in tmpdict[acc]['DepositHistory']:
-            obj.DepositHistory.appendleft(hist)
+            obj.DepositHistory.append(hist)
+
+        accounts_dict[int(acc)] = obj
 
 
 
@@ -191,14 +193,17 @@ class account:
             if StringToConfidentialityLvl(self.__userlist[user][0]).value <= StringToConfidentialityLvl(self.__conf_lvl).value and \
             StringToIntegrityLvl(self.__userlist[user][1]).value >= StringToIntegrityLvl(self.__integrity_lvl).value:
                 if self.__balance >= amount:
+                    print('Before')
                     with accounts_lock:
                         self.__balance -= amount
-                        if self.WithdrawHistory.count() == 5: self.WithdrawHistory.pop()
+                        if len(self.WithdrawHistory) == 5: self.WithdrawHistory.pop()
                         self.WithdrawHistory.appendleft((user, amount))
                         f = open(accounts_filename, 'w')
                         tmpdict = jsons.dump(accounts_dict)
                         json.dump(tmpdict, f, indent=4)
                         f.close()
+                    print('After')
+
                     return 1 #Success
                 else: return 0 #Insufficient balance
         else: return -1 #Access Denied
@@ -207,7 +212,7 @@ class account:
     def Intake(self, amount):
         with accounts_lock:
             self.__balance += amount
-            if self.DepositHistory.count() == 5: self.DepositHistory.pop()
+            if len(self.DepositHistory) == 5: self.DepositHistory.pop()
             self.DepositHistory.appendleft(amount)
             f = open(accounts_filename, 'w')
             tmpdict = jsons.dump(accounts_dict)
@@ -221,7 +226,7 @@ class account:
                 if self.__balance >= amount:
                     with accounts_lock:
                         self.__balance -= amount
-                        if self.WithdrawHistory.count() == 5: self.WithdrawHistory.pop()
+                        if len(self.WithdrawHistory) == 5: self.WithdrawHistory.pop()
                         self.WithdrawHistory.appendleft((user, amount))
                         f = open(accounts_filename, 'w')
                         tmpdict = jsons.dump(accounts_dict)
@@ -273,7 +278,7 @@ class account:
                 #Print Account info
                 return (self.__accounttype, self.__creationdate, self.__balance, self.__owner, list(self.__userlist), self.__pendinglist
                         , self.WithdrawHistory, self.DepositHistory)
-        else: return -1 #Access Denied
+        return -1 #Access Denied
                 
 
 
@@ -295,14 +300,13 @@ def PasswordAssesment(passwd: str):
 
     if tuple([a and b for a,b in zip((hasLower, hasUpper, hasDigit, hasSpecial), Password_Requirment[1:])]) == Password_Requirment[1:]: 
         return 1 #Accept Password
-
     else: return -1 #Requirement not met
 
 
 
 class CustomerHandlerThread(threading.Thread):
-    __Cryptor = None
     def __init__(self, client: sc.socket, address):
+        self.__Cryptor = None
         super().__init__()
         self.client = client
         self.address = address
@@ -507,7 +511,7 @@ class CustomerHandlerThread(threading.Thread):
                     #Audit
                     with logfile_lock:
                         f = open(LogfileName, 'a')
-                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Created an Account: [{accountnum}] from IP address: {self.address[0]}\n")
+                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Created an Account: [{accountnum.getAccountNumber()}] from IP address: {self.address[0]}\n")
                         f.close()
                     #Print Accountnum
                     if not self.SendtoClient(bcolors.GREENHIGHLIGHT + f"Your Account Created with Account Number: [{accountnum.getAccountNumber()}]!" + bcolors.ENDC + '\n'): return
@@ -703,6 +707,7 @@ class CustomerHandlerThread(threading.Thread):
                                     msg += f"Account Creation Date: {result[1]}\n"
                                     msg += f"Account Balance: {result[2]}\n"
                                     msg += f"Account Owner: {result[3]}\n"
+
                                     msg += "Account User List:\n\t {}\n".format('\n\t'.join(result[4]))
                                     msg += "Account Pending List:\n\t {}\n".format('\n\t'.join(result[5]))
                                     msg += "Account Last 5 Withdraws:\n"
