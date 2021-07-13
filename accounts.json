@@ -1,0 +1,58 @@
+{
+    "1000000001": {
+        "DepositHistory": [],
+        "WithdrawHistory": [],
+        "_account__accountnumber": 1000000001,
+        "_account__accounttype": "Checking",
+        "_account__balance": 1200,
+        "_account__conf_lvl": "Secret",
+        "_account__creationdate": "2021-07-13",
+        "_account__integrity_lvl": "Trusted",
+        "_account__owner": "user1",
+        "_account__pendinglist": [
+            "user2"
+        ],
+        "_account__userlist": {
+            "user1": [
+                "Secret",
+                "Trusted"
+            ]
+        }
+    },
+    "1000000002": {
+        "DepositHistory": [],
+        "WithdrawHistory": [],
+        "_account__accountnumber": 1000000002,
+        "_account__accounttype": "ShortTermSaving",
+        "_account__balance": 200,
+        "_account__conf_lvl": "Confidential",
+        "_account__creationdate": "2021-07-13",
+        "_account__integrity_lvl": "Trusted",
+        "_account__owner": "user1",
+        "_account__pendinglist": [],
+        "_account__userlist": {
+            "user1": [
+                "Confidential",
+                "Trusted"
+            ]
+        }
+    },
+    "1000000003": {
+        "DepositHistory": [],
+        "WithdrawHistory": [],
+        "_account__accountnumber": 1000000003,
+        "_account__accounttype": "LongTermSaving",
+        "_account__balance": 5000,
+        "_account__conf_lvl": "TopSecret",
+        "_account__creationdate": "2021-07-13",
+        "_account__integrity_lvl": "SlightlyTrusted",
+        "_account__owner": "user2",
+        "_account__pendinglist": [],
+        "_account__userlist": {
+            "user2": [
+                "TopSecret",
+                "SlightlyTrusted"
+            ]
+        }
+    }
+}
