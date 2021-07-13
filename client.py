@@ -64,7 +64,7 @@ if __name__ == "__main__":
     
     while(True):
         cmd = input(">>>")
-        splittedCmd = cmd.split(" ")
+        splittedCmd = cmd.strip().split(" ")
         # handle signup command
         if(splittedCmd[0] == "signup"):
             if(len(splittedCmd) != 3):
