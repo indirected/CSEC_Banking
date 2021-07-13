@@ -10,6 +10,7 @@ import datetime
 import bcolors
 from Encryption import AESCrypto
 import queue
+from collections import deque
 import jsons
 
 server_socket = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
@@ -99,6 +100,14 @@ logfile_lock = threading.Lock()
 user_passhash_filename = "user_passhash.json"
 passhash_lock = threading.Lock()
 user_passhash_dict = {}
+
+def UserJsonLoader():
+    global user_passhash_dict
+    with passhash_lock:
+        f = open(user_passhash_filename, 'r')
+        user_passhash_dict = json.load(f)
+        f.close()
+
 class user:
     def __init__(self, username, password):
         self.__username = username
@@ -117,42 +126,78 @@ class user:
 accounts_filename = "accounts.json"
 accounts_lock = threading.Lock()
 accounts_dict = {}
-class account:
-    __userlist = {}
-    __pendinglist = []
-    __accountnumber = 1000000001
-    #__DepositHistory = queue.Queue()
-    #__WithdrawHistory = queue.Queue()
 
+def AccountsJsonLoader():
+    global accounts_dict
+    #with accounts_lock:
+    f = open(accounts_filename, 'r')
+    tmpdict = json.load(f)
+    f.close()
+    
+    for acc in list(tmpdict):
+        #print(tmpdict[acc]['WithdrawHistory'])
+        obj = jsons.load(tmpdict[acc], account)
+        obj.WithdrawHistory = deque()
+        for hist in tmpdict[acc]['WithdrawHistory']:
+            obj.WithdrawHistory.appendleft((hist[0], hist[1]))
+        
+        obj.DepositHistory = deque()
+        for hist in tmpdict[acc]['DepositHistory']:
+            obj.DepositHistory.appendleft(hist)
+
+
+
+class account:
     def __init__(self, ownerusername, accounttype, initialamount, conf_lvl, integrity_lvl) -> int:
-        self.__accounttype = accounttype
+        self.__userlist = {}
+        self.__pendinglist = []
+        self.__accountnumber = 1000000001
+
+        # self.__DepositHistory = queue.Queue()
+        # self.__WithdrawHistory = queue.Queue()
+        self.DepositHistory = deque()
+        self.WithdrawHistory = deque()
+
+        if type(accounttype) == Account_Types:
+            self.__accounttype = accounttype.name
+        else: self.__accounttype = accounttype
+
+
         self.__creationdate = datetime.date.today()
         self.__balance = initialamount
-        self.__conf_lvl = conf_lvl
-        self.__integrity_lvl = integrity_lvl
+        if type(conf_lvl) == Confidentiality_lvl_List:
+            self.__conf_lvl = conf_lvl.name
+        else: self.__conf_lvl = conf_lvl
+
+        if type(integrity_lvl) == Integrity_lvl_List:
+            self.__integrity_lvl = integrity_lvl.name
+        else: self.__integrity_lvl = integrity_lvl
         self.__owner = ownerusername
-        self.__userlist[ownerusername] = (conf_lvl, integrity_lvl)
-        
+        self.__userlist[ownerusername] = (self.__conf_lvl, self.__integrity_lvl)
+        #print(self.__userlist)
         #set account number
         if accounts_dict:
             self.__accountnumber = list(accounts_dict)[-1] + 1
         with accounts_lock:
             accounts_dict[self.__accountnumber] = self
-            # f = open(accounts_filename, 'w')
-            # json.dump(accounts_dict, f, indent=4)
-            # f.close()
+            f = open(accounts_filename, 'w')
+            tmpdict = jsons.dump(accounts_dict)
+            json.dump(tmpdict, f, indent=4)
+            f.close()
         #return self.__accountnumber
 
     def Withdraw(self, user, amount):
         if user in list(self.__userlist):
-            if self.__userlist[user][0].value <= self.__conf_lvl.value and self.__userlist[user][1].value >= self.__integrity_lvl.value:
+            if StringToConfidentialityLvl(self.__userlist[user][0]).value <= StringToConfidentialityLvl(self.__conf_lvl).value and \
+            StringToIntegrityLvl(self.__userlist[user][1]).value >= StringToIntegrityLvl(self.__integrity_lvl).value:
                 if self.__balance >= amount:
                     with accounts_lock:
                         self.__balance -= amount
-                        if self.__WithdrawHistory.qsize() == 5: self.__WithdrawHistory.get()
-                        self.__WithdrawHistory.put((user, amount))
+                        if self.WithdrawHistory.count() == 5: self.WithdrawHistory.pop()
+                        self.WithdrawHistory.appendleft((user, amount))
                         f = open(accounts_filename, 'w')
-                        json.dump(accounts_dict, f, indent=4)
+                        tmpdict = jsons.dump(accounts_dict)
+                        json.dump(tmpdict, f, indent=4)
                         f.close()
                     return 1 #Success
                 else: return 0 #Insufficient balance
@@ -162,22 +207,25 @@ class account:
     def Intake(self, amount):
         with accounts_lock:
             self.__balance += amount
-            if self.__DepositHistory.qsize() == 5: self.__DepositHistory.get()
-            self.__DepositHistory.put(amount)
+            if self.DepositHistory.count() == 5: self.DepositHistory.pop()
+            self.DepositHistory.appendleft(amount)
             f = open(accounts_filename, 'w')
-            json.dump(accounts_dict, f, indent=4)
+            tmpdict = jsons.dump(accounts_dict)
+            json.dump(tmpdict, f, indent=4)
             f.close()
 
     def Deposit(self, user, destination, amount):
         if user in list(self.__userlist):
-            if self.__userlist[user][0].value <= self.__conf_lvl.value and self.__userlist[user][1].value >= self.__integrity_lvl.value:
+            if StringToConfidentialityLvl(self.__userlist[user][0]).value <= StringToConfidentialityLvl(self.__conf_lvl).value and \
+            StringToIntegrityLvl(self.__userlist[user][1]).value >= StringToIntegrityLvl(self.__integrity_lvl).value:
                 if self.__balance >= amount:
                     with accounts_lock:
                         self.__balance -= amount
-                        if self.__WithdrawHistory.qsize() == 5: self.__WithdrawHistory.get()
-                        self.__WithdrawHistory.put((user, amount))
+                        if self.WithdrawHistory.count() == 5: self.WithdrawHistory.pop()
+                        self.WithdrawHistory.appendleft((user, amount))
                         f = open(accounts_filename, 'w')
-                        json.dump(accounts_dict, f, indent=4)
+                        tmpdict = jsons.dump(accounts_dict)
+                        json.dump(tmpdict, f, indent=4)
                         f.close()
                     accounts_dict[destination].Intake(amount)
                     return 1 #Success
@@ -193,7 +241,8 @@ class account:
         with accounts_lock:
             self.__pendinglist.append(user)
             f = open(accounts_filename, 'w')
-            json.dump(accounts_dict, f, indent=4)
+            tmpdict = jsons.dump(accounts_dict)
+            json.dump(tmpdict, f, indent=4)
             f.close()
         return 1 #Success
 
@@ -204,7 +253,8 @@ class account:
                     self.__pendinglist.remove(user)
                     self.__userlist[user] = (conf_lvl, integrity_lvl)
                     f = open(accounts_filename, 'w')
-                    json.dump(accounts_dict, f, indent=4)
+                    tmpdict = jsons.dump(accounts_dict)
+                    json.dump(tmpdict, f, indent=4)
                     f.close()
                 return 1 #Success
             else: return 0 #User Not in Pending
@@ -215,12 +265,17 @@ class account:
 
     def PrintAccountInfo(self, user):
         if user in list(self.__userlist):
-            if self.__userlist[user][0].value >= self.__conf_lvl.value and self.__userlist[user][1].value <= self.__integrity_lvl.value:
+            if StringToConfidentialityLvl(self.__userlist[user][0]).value >= StringToConfidentialityLvl(self.__conf_lvl).value and \
+            StringToIntegrityLvl(self.__userlist[user][1]).value <= StringToIntegrityLvl(self.__integrity_lvl).value:
                 #Print Account info
                 return (self.__accounttype, self.__creationdate, self.__balance, self.__owner, list(self.__userlist), self.__pendinglist
-                        , self.__WithdrawHistory, self.__DepositHistory)
+                        , self.WithdrawHistory, self.DepositHistory)
         else: return -1 #Access Denied
                 
+
+
+
+
 
 
 
@@ -641,17 +696,17 @@ class CustomerHandlerThread(threading.Thread):
                                         f.close()
 
                                     #Construct messege
-                                    msg = f"Account Type: {result[0].name}\n"
+                                    msg = f"Account Type: {result[0]}\n"
                                     msg += f"Account Creation Date: {result[1]}\n"
                                     msg += f"Account Balance: {result[2]}\n"
-                                    msg += f"Account Owner: {result[3]}"
+                                    msg += f"Account Owner: {result[3]}\n"
                                     msg += "Account User List:\n\t {}\n".format('\n\t'.join(result[4]))
                                     msg += "Account Pending List:\n\t {}\n".format('\n\t'.join(result[5]))
                                     msg += "Account Last 5 Withdraws:\n"
-                                    for i in list(result[6].queue):
+                                    for i in list(result[6]):
                                         msg += f"\t -{i[1]} By User: {i[0]}\n"
                                     msg += "Account Last 5 Deposits:\n"
-                                    for i in list(result[7].queue):
+                                    for i in list(result[7]):
                                         msg += f"\t +{i[1]}\n"
                                     
                                     if not self.SendtoClient(bcolors.GRAYHIGHLIGHT + f"Information of Account: {accountnum}" + bcolors.ENDC
@@ -859,23 +914,57 @@ class CustomerHandlerThread(threading.Thread):
 
 
 if __name__ == "__main__":
-    # thread_list = []
-    # server_socket.listen(10)
-    # while True:
-    #     cli, addr = server_socket.accept()
-    #     newthread = CustomerHandlerThread(cli, addr)
-    #     #thread_list.append[newthread]
-    #     newthread.start()
+    UserJsonLoader()
+    AccountsJsonLoader()
+
+    thread_list = []
+    server_socket.listen(10)
+    while True:
+        cli, addr = server_socket.accept()
+        newthread = CustomerHandlerThread(cli, addr)
+        #thread_list.append[newthread]
+        newthread.start()
 
 
-    ob = account('alo', Account_Types.Checking, 50, Confidentiality_lvl_List.Secret, Integrity_lvl_List.Trusted)
-    ob2 = account('balo', Account_Types.GharzAlHassaneh, 80, Confidentiality_lvl_List.Secret, Integrity_lvl_List.Trusted)
-    print(accounts_dict)
-    s = jsons.dumps(accounts_dict)
-    print(s)
-    obb = jsons.loads(s)
-    print(type(obb))
+    # ob = account('alo', Account_Types.Checking, 50, Confidentiality_lvl_List.Secret, Integrity_lvl_List.Trusted)
+    # ob.WithdrawHistory.appendleft(('alo', 10))
+    # print(type(ob.WithdrawHistory))
+    # ob2 = account('balo', Account_Types.GharzAlHassaneh, 80, Confidentiality_lvl_List.Secret, Integrity_lvl_List.Trusted)
+    # print(accounts_dict[1000000001].__dict__)
+    #s = jsons.dumps(accounts_dict)
+    #print(s)
+    #obb = jsons.loads(s)
+    #print(type(obb))
+
+    #load
     
+        #print(type(obj.PrintAccountInfo('alo')[6]))
+
+    # print(accounts_dict[1000000001].__dict__)
+
+    # result = accounts_dict[1000000001].PrintAccountInfo('alo')
+    # msg = f"Account Type: {result[0]}\n"
+    # msg += f"Account Creation Date: {result[1]}\n"
+    # msg += f"Account Balance: {result[2]}\n"
+    # msg += f"Account Owner: {result[3]}\n"
+    # msg += "Account User List:\n\t {}\n".format('\n\t'.join(result[4]))
+    # msg += "Account Pending List:\n\t {}\n".format('\n\t'.join(result[5]))
+    # msg += "Account Last 5 Withdraws:\n"
+    # for i in list(result[6]):
+    #     msg += f"\t -{i[1]} By User: {i[0]}\n"
+    # msg += "Account Last 5 Deposits:\n"
+    # for i in list(result[7]):
+    #     msg += f"\t +{i[1]}\n"
+    # print(msg)
+
+
+    # user('alo', '!QAZ2wsx')
+    # UserJsonLoader()
+    # print(user_passhash_dict)
+           
+    
+
+    #print(type(Confidentiality_lvl_List.Secret) == Confidentiality_lvl_List)
     
     # dict = {"alo":"balo"}
     # print('ball'in list(dict))
