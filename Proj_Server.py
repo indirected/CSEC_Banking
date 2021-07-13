@@ -1,6 +1,5 @@
 #!/bin/python3.9
 from enum import Enum, auto
-import pickle
 import json
 import hashlib
 import random
@@ -9,7 +8,6 @@ import socket as sc
 import datetime
 import bcolors
 from Encryption import AESCrypto
-import queue
 from collections import deque
 import jsons
 
@@ -111,15 +109,13 @@ def UserJsonLoader():
 class user:
     def __init__(self, username, password):
         self.__username = username
-        #self.__conf_lvl = conf_lvl
-        #self.__integrity_lvl = integrity_lvl
         salt = RandomSubstring(alphabet + ALPHABET + digits, 10)
         with passhash_lock:
             user_passhash_dict[self.__username] = (hashlib.sha256((password + salt).encode('ascii')).hexdigest(), salt)
             f = open(user_passhash_filename, 'w')
             json.dump(user_passhash_dict, f, indent=4)
             f.close()
-        #print(user_passhash_dict)
+        
 
 
 
@@ -129,13 +125,11 @@ accounts_dict = {}
 
 def AccountsJsonLoader():
     global accounts_dict
-    #with accounts_lock:
     f = open(accounts_filename, 'r')
     tmpdict = json.load(f)
     f.close()
     
     for acc in list(tmpdict):
-        #print(tmpdict[acc]['WithdrawHistory'])
         obj = jsons.load(tmpdict[acc], account)
         obj.WithdrawHistory = deque()
         for hist in tmpdict[acc]['WithdrawHistory']:
@@ -155,8 +149,6 @@ class account:
         self.__pendinglist = []
         self.__accountnumber = 1000000001
 
-        # self.__DepositHistory = queue.Queue()
-        # self.__WithdrawHistory = queue.Queue()
         self.DepositHistory = deque()
         self.WithdrawHistory = deque()
 
@@ -176,7 +168,6 @@ class account:
         else: self.__integrity_lvl = integrity_lvl
         self.__owner = ownerusername
         self.__userlist[ownerusername] = (self.__conf_lvl, self.__integrity_lvl)
-        #print(self.__userlist)
         #set account number
         if accounts_dict:
             self.__accountnumber = list(accounts_dict)[-1] + 1
@@ -186,7 +177,6 @@ class account:
             tmpdict = jsons.dump(accounts_dict)
             json.dump(tmpdict, f, indent=4)
             f.close()
-        #return self.__accountnumber
 
     def Withdraw(self, user, amount):
         if user in list(self.__userlist):
@@ -335,7 +325,6 @@ class CustomerHandlerThread(threading.Thread):
         
         #Create Cryptography Object
         self.__Cryptor = AESCrypto(SessionKey)
-        #print(SessionKey)
         LoggedinUser = ''
         while True:
 
@@ -902,7 +891,6 @@ class CustomerHandlerThread(threading.Thread):
                 pass
             
 
-        print(self.name)
     
     def SendtoClient(self, msg: str):
         try:
@@ -930,7 +918,6 @@ if __name__ == "__main__":
     while True:
         cli, addr = server_socket.accept()
         newthread = CustomerHandlerThread(cli, addr)
-        #thread_list.append[newthread]
         newthread.start()
 
 
