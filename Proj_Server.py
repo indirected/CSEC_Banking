@@ -10,6 +10,7 @@ import datetime
 import bcolors
 from Encryption import AESCrypto
 import queue
+import jsons
 
 server_socket = sc.socket(sc.AF_INET, sc.SOCK_STREAM)
 server_socket.bind(('127.0.0.1', 12345))
@@ -120,10 +121,10 @@ class account:
     __userlist = {}
     __pendinglist = []
     __accountnumber = 1000000001
-    __DepositHistory = queue.Queue()
-    __WithdrawHistory = queue.Queue()
+    #__DepositHistory = queue.Queue()
+    #__WithdrawHistory = queue.Queue()
 
-    def __init__(self, ownerusername, accounttype, initialamount, conf_lvl, integrity_lvl):
+    def __init__(self, ownerusername, accounttype, initialamount, conf_lvl, integrity_lvl) -> int:
         self.__accounttype = accounttype
         self.__creationdate = datetime.date.today()
         self.__balance = initialamount
@@ -137,10 +138,10 @@ class account:
             self.__accountnumber = list(accounts_dict)[-1] + 1
         with accounts_lock:
             accounts_dict[self.__accountnumber] = self
-            f = open(accounts_filename, 'w')
-            json.dump(accounts_dict, f, indent=4)
-            f.close()
-        return self.__accountnumber
+            # f = open(accounts_filename, 'w')
+            # json.dump(accounts_dict, f, indent=4)
+            # f.close()
+        #return self.__accountnumber
 
     def Withdraw(self, user, amount):
         if user in list(self.__userlist):
@@ -272,7 +273,8 @@ class CustomerHandlerThread(threading.Thread):
         
         #Create Cryptography Object
         self.__Cryptor = AESCrypto(SessionKey)
-
+        #print(SessionKey)
+        LoggedinUser = ''
         while True:
 
             try:
@@ -295,10 +297,9 @@ class CustomerHandlerThread(threading.Thread):
                 f.close()
 
 
-            LoggedinUser = ''
+            
             if command[0] == "signup":
                 if LoggedinUser != '':
-
                     #Audit
                     with logfile_lock:
                         f = open(LogfileName, 'a')
@@ -342,7 +343,7 @@ class CustomerHandlerThread(threading.Thread):
                             #Reqs not met - Print Reqs
                             if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Password requirement not met!" + bcolors.ENDC + '\n'
                             + f"Password Requirements:\n\t MustHave(Lower, Upper, Digits, Specials) = {Password_Requirment[1:]}\n"
-                            + f"Allowed Special Characters = {specials}\n"): return
+                            + f"\tAllowed Special Characters = {specials}\n"): return
                         elif passAssesst == -2:
                             #Not Allowed characters in passwd
                             if not self.SendtoClient(bcolors.REDHIGHLIGHT + "This password is not Allowed!" + bcolors.ENDC + '\n'
@@ -863,15 +864,26 @@ if __name__ == "__main__":
     # while True:
     #     cli, addr = server_socket.accept()
     #     newthread = CustomerHandlerThread(cli, addr)
+    #     #thread_list.append[newthread]
     #     newthread.start()
-    #     thread_list.append[newthread]
+
+
+    ob = account('alo', Account_Types.Checking, 50, Confidentiality_lvl_List.Secret, Integrity_lvl_List.Trusted)
+    ob2 = account('balo', Account_Types.GharzAlHassaneh, 80, Confidentiality_lvl_List.Secret, Integrity_lvl_List.Trusted)
+    print(accounts_dict)
+    s = jsons.dumps(accounts_dict)
+    print(s)
+    obb = jsons.loads(s)
+    print(type(obb))
+    
+    
     # dict = {"alo":"balo"}
-    # print('ball'in list(dict)
+    # print('ball'in list(dict))
     #username = 'alobaloA25+amFDE85_'
     #print("".join([char for char in username if char in alphabet+ALPHABET+digits]))
     #print((True, True, False, True) & Password_Requirment[1:] == Password_Requirment[1:])
     #print(tuple([a and b for a,b in zip((True, True, False, True), Password_Requirment[1:])])== Password_Requirment[1:])
-    print(datetime.datetime.now())
+    #print(datetime.datetime.now())
     # s = """26:fd:ea:a1:f7:18:10:7b:0d:11:37:c3:55:a7:f8:
     # 5b:ac:ea:7e:93:85:b9:dc:0f:a5:b7:8c:53:b1:d2:
     # 86:1f:2b:f3:82:48:ad:67:f2:cf:71:d3:52:ea:1e:

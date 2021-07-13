@@ -21,5 +21,5 @@ class AESCrypto:
     def decrypt(self, cipher: bytes) -> str:
         cipher = base64.b64decode(cipher)
         iv = cipher[0:self.__blocksize]
-        Crypto = AES.new(self.__key, AES.MODE_CBC, iv)
-        return self.__unpad(Crypto.decrypt(cipher[self.__blocksize:])).decode('ascii')
+        Cryptor = AES.new(self.__key, AES.MODE_CBC, iv)
+        return self.__unpad(Cryptor.decrypt(cipher[self.__blocksize:]).decode('ascii'))
