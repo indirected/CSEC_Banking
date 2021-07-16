@@ -91,6 +91,7 @@ def RandomSubstring(string, length):
 
 
 #Log file and Lock
+HoneyPot = "HoneyPot.log"
 LogfileName = "Audit.log"
 logfile_lock = threading.Lock()
 
@@ -300,6 +301,8 @@ class CustomerHandlerThread(threading.Thread):
         super().__init__()
         self.client = client
         self.address = address
+        self.suspend = datetime.datetime.now()
+        self.wrongAttemp = 0
     def run(self):
         self.client.setblocking(True)
         #Audit
@@ -412,39 +415,68 @@ class CustomerHandlerThread(threading.Thread):
 
 
             elif command[0] == "login":
-                if LoggedinUser != '':
-                    #Audit
-                    with logfile_lock:
-                        f = open(LogfileName, 'a')
-                        f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to loggin while Logged in from IP address: {self.address[0]}\n")
-                        f.close()
-                    #You Are Already Logged in
-                    if not self.SendtoClient(bcolors.REDHIGHLIGHT + "You are already logged in!" + bcolors.ENDC + '\n'): return
-                    continue
-                if len(command) == 3:
-                    username = command[1]
-                    password = command[2]
-                    if username in list(user_passhash_dict):
-                        savedHash, savedSalt = user_passhash_dict[username]
-                        newHash = hashlib.sha256((password + savedSalt).encode('ascii')).hexdigest()
-                        if newHash == savedHash:
-                            LoggedinUser = username
+                if self.wrongAttemp > 6:
+                    if not self.SendtoClient(bcolors.GREENHIGHLIGHT + "Logged in Successfuly!" + bcolors.ENDC + '\n'): return
+                    while True:
+                        try:
+                            command = self.client.recv(1024)
+                            if not command: raise ConnectionAbortedError
+                            command = self.__Cryptor.decrypt(command).split()
+                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Command Not found!" + bcolors.ENDC + '\n'): return
+                        except Exception as e:
                             #Audit
                             with logfile_lock:
-                                f = open(LogfileName, 'a')
-                                f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Logged in from IP address: {self.address[0]}\n")
+                                f = open(HoneyPot, 'a')
+                                f.write(f"[{datetime.datetime.now()}]\t Client Unexpectedly Discconected with Error: [{e}] from IP address: {self.address[0]}\n")
                                 f.close()
+                            print(f"Connection Error: [{e}] in Thread: [{self.name}] - Ending Thread...")
+                            return
+
+                        #Audit
+                        with logfile_lock:
+                            f = open(HoneyPot, 'a')
+                            f.write(f"[{datetime.datetime.now()}]\t Recieved Command: [{' '.join(command)}] from IP address: {self.address[0]}\n")
+                            f.close()
+                        
+                if datetime.datetime.now() > self.suspend:
+                    if LoggedinUser != '':
+                        #Audit
+                        with logfile_lock:
+                            f = open(LogfileName, 'a')
+                            f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Tried to loggin while Logged in from IP address: {self.address[0]}\n")
+                            f.close()
+                        #You Are Already Logged in
+                        if not self.SendtoClient(bcolors.REDHIGHLIGHT + "You are already logged in!" + bcolors.ENDC + '\n'): return
+                        continue
+                    if len(command) == 3:
+                        username = command[1]
+                        password = command[2]
+                        if username in list(user_passhash_dict):
+                            savedHash, savedSalt = user_passhash_dict[username]
+                            newHash = hashlib.sha256((password + savedSalt).encode('ascii')).hexdigest()
+                            if newHash == savedHash:
+                                LoggedinUser = username
+                                self.wrongAttemp = 0
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{LoggedinUser}] Logged in from IP address: {self.address[0]}\n")
+                                    f.close()
+                                
+                                #Logged in
+                                if not self.SendtoClient(bcolors.GREENHIGHLIGHT + "Logged in Successfuly!" + bcolors.ENDC + '\n'): return
+                            else:
+                                #Audit
+                                with logfile_lock:
+                                    f = open(LogfileName, 'a')
+                                    f.write(f"[{datetime.datetime.now()}]\t User: [{username}] Tried to loggin with Wrong Password: [{password}] from IP address: {self.address[0]}\n")
+                                    f.close()
+                                #Wrong Passwd
+                                if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Wrong Password!" + bcolors.ENDC + '\n'): return
+                                self.wrongAttemp += 1
+                                if self.wrongAttemp > 5:
+                                    self.suspend = datetime.datetime.now() + datetime.timedelta(minutes=1)
                             
-                            #Logged in
-                            if not self.SendtoClient(bcolors.GREENHIGHLIGHT + "Logged in Successfuly!" + bcolors.ENDC + '\n'): return
-                        else:
-                            #Audit
-                            with logfile_lock:
-                                f = open(LogfileName, 'a')
-                                f.write(f"[{datetime.datetime.now()}]\t User: [{username}] Tried to loggin with Wrong Password: [{password}] from IP address: {self.address[0]}\n")
-                                f.close()
-                            #Wrong Passwd
-                            if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Wrong Password!" + bcolors.ENDC + '\n'): return
 
                     else:
                         #Audit
@@ -454,6 +486,7 @@ class CustomerHandlerThread(threading.Thread):
                             f.close()
                         #user not exists
                         if not self.SendtoClient(bcolors.REDHIGHLIGHT + "Username not Exists!" + bcolors.ENDC + '\n'): return
+                elif not self.SendtoClient(bcolors.REDHIGHLIGHT + "You entered wrong password more than 5 times! try again later" + bcolors.ENDC + '\n'): return
                 continue
 
 

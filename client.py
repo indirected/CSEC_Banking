@@ -109,21 +109,26 @@ if __name__ == "__main__":
 
         # handle show command
         elif(splittedCmd[0] == "show"):
-            if(splittedCmd[1] == "myaccounts"):
-                if(len(splittedCmd) != 2):
-                    print("Wrong command format!\n\tUsage: show myaccounts")
+            if(len(splittedCmd) >= 2):
+                if(splittedCmd[1] == "myaccounts"):
+                    if(len(splittedCmd) != 2):
+                        print("Wrong command format!\n\tUsage: show myaccounts")
+                        continue
+                    SendtoServer(cmd)
+                    print("<<< " + ReceivefromServer())
+                elif(splittedCmd[1] == "account"):
+                    if(len(splittedCmd) != 3):
+                        print("Wrong command format!\n\tUsage: show account [account_no]")
+                        continue
+                    SendtoServer(cmd)
+                    print("<<< " + ReceivefromServer())
+                else:
+                    print("Wrong command format!\n\tUsage: show myaccounts or show account [account_no]")
                     continue
-                SendtoServer(cmd)
-                print("<<< " + ReceivefromServer())
-            elif(splittedCmd[1] == "account"):
-                if(len(splittedCmd) != 3):
-                    print("Wrong command format!\n\tUsage: show account [account_no]")
-                    continue
-                SendtoServer(cmd)
-                print("<<< " + ReceivefromServer())
             else:
                 print("Wrong command format!\n\tUsage: show myaccounts or show account [account_no]")
-                continue    
+                continue
+
 
         # handle deposit command
         elif(splittedCmd[0] == "deposit"):
